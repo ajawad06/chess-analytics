@@ -1,0 +1,194 @@
+# =============================================================================
+# Chess Analytics — .gitignore
+# =============================================================================
+
+# ── Environment & Secrets ────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.p12
+*.pfx
+
+# ── Node / npm ───────────────────────────────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.npm
+.yarn-integrity
+yarn.lock
+pnpm-lock.yaml
+
+# ── Electron Build Output ────────────────────────────────────────────────────
+dist/
+out/
+build/
+*.AppImage
+*.deb
+*.dmg
+*.exe
+*.msi
+*.nsis
+*.pkg
+*.snap
+*.zip
+*.tar.gz
+release/
+*.blockmap
+builder-debug.yml
+builder-effective-config.yaml
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.eggs/
+lib/
+lib64/
+.installed.cfg
+*.spec
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+env.bak/
+venv.bak/
+.virtualenv/
+Pipfile.lock
+
+# ── Lichess PGN Data ─────────────────────────────────────────────────────────
+# These files are multi-GB downloads — never commit them
+*.pgn
+*.pgn.zst
+*.pgn.bz2
+*.pgn.gz
+data/
+*.zst
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.backup
+*.csv
+*.tsv
+
+# ── OS Generated ─────────────────────────────────────────────────────────────
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+ehthumbs.db
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ── Editors & IDEs ───────────────────────────────────────────────────────────
+# VS Code
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# JetBrains (IntelliJ, PyCharm, WebStorm, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+*.swp
+*.swo
+*~
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+
+# Emacs
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Sublime Text
+*.tmlanguage.cache
+*.tmPreferences.cache
+*.stTheme.cache
+*.sublime-workspace
+*.sublime-project
+
+# ── Logs & Temporary Files ───────────────────────────────────────────────────
+logs/
+*.log
+*.log.*
+*.tmp
+*.temp
+*.bak
+*.swp
+*.orig
+tmp/
+temp/
+.tmp/
+.temp/
+
+# ── Coverage & Testing ───────────────────────────────────────────────────────
+coverage/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.cache
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+
+# ── Misc ─────────────────────────────────────────────────────────────────────
+.sass-cache/
+.connect.lock
+.lock-wscript
+*.pid
+*.seed
+*.pid.lock
+.grunt
+.bower_components
+.node_repl_history
+.yarn/

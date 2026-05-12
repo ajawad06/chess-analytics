@@ -1,0 +1,1139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chess Analytics - Explorer</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
+
+      :root {
+        --bg: #12141a;
+        --bg2: #1a1d27;
+        --bg3: #202431;
+        --bg4: #252a3a;
+        --border: #2a3048;
+        --border2: #36406a;
+        --gold: #f0b94a;
+        --gold2: #ffd97a;
+        --text: #eef0f8;
+        --text2: #a8b0cc;
+        --text3: #5a6380;
+        --green: #4ec98a;
+        --red: #f05a5a;
+        --white-sq: #f0d9b5;
+        --black-sq: #b58863;
+        --radius: 8px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background: radial-gradient(circle at 10% 0%, #1d2233 0%, var(--bg) 45%);
+        color: var(--text);
+        display: flex;
+        flex-direction: column;
+      }
+
+      #titlebar {
+        display: flex;
+        align-items: center;
+        height: 44px;
+        background: var(--bg2);
+        border-bottom: 1px solid var(--border);
+        padding: 0 0 0 20px;
+        -webkit-app-region: drag;
+        flex-shrink: 0;
+        gap: 0;
+      }
+
+      .tb-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-right: 20px;
+      }
+      .tb-icon {
+        font-size: 19px;
+        width: 20px;
+        text-align: center;
+        color: var(--green);
+        filter: drop-shadow(0 0 5px rgba(78, 201, 138, 0.35));
+      }
+      .tb-brand {
+        display: flex;
+        flex-direction: column;
+      }
+      .tb-name {
+        font-family: "Cinzel", serif;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--gold);
+        line-height: 1;
+      }
+      .tb-sub {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9px;
+        color: var(--text3);
+        letter-spacing: 0.08em;
+        margin-top: 2px;
+      }
+
+      .tb-status {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex: 1;
+        -webkit-app-region: drag;
+        padding-left: 16px;
+      }
+
+      .tb-conn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        border: 1px solid var(--border2);
+        background: var(--bg3);
+        color: var(--text3);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        -webkit-app-region: no-drag;
+        transition: border-color 0.2s, color 0.2s;
+      }
+      .tb-conn.connected {
+        color: var(--green);
+        border-color: rgba(78, 201, 138, 0.4);
+      }
+      .tb-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--text3);
+        flex-shrink: 0;
+        transition: background 0.3s;
+      }
+      .tb-dot.connected {
+        background: var(--green);
+        box-shadow: 0 0 5px var(--green);
+      }
+
+      .tb-nav {
+        display: flex;
+        align-items: stretch;
+        height: 44px;
+        -webkit-app-region: no-drag;
+      }
+      .nav-tab {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 18px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        color: var(--text3);
+        border: none;
+        background: none;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: color 0.15s, background 0.15s, border-color 0.15s;
+        text-transform: uppercase;
+        -webkit-app-region: no-drag;
+      }
+      .nav-tab:hover {
+        color: var(--text2);
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .nav-tab.active {
+        color: var(--gold);
+        border-bottom-color: var(--gold);
+        background: rgba(240, 185, 74, 0.08);
+      }
+
+      #reset-game-btn {
+        height: 44px;
+        padding: 0 18px;
+        border: none;
+        background: transparent;
+        color: var(--text3);
+        cursor: pointer;
+        font-size: 14px;
+        -webkit-app-region: no-drag;
+        transition: all 0.15s;
+      }
+      #reset-game-btn:hover {
+        color: var(--gold);
+      }
+      #reset-game-btn.spinning {
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+
+      .tb-win {
+        display: flex;
+        align-items: center;
+        height: 44px;
+        -webkit-app-region: no-drag;
+      }
+      .win-btn {
+        width: 46px;
+        height: 44px;
+        border: none;
+        background: transparent;
+        color: var(--text3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 11px;
+        transition: background 0.12s, color 0.12s;
+        font-family: "JetBrains Mono", monospace;
+      }
+      .win-btn:hover {
+        background: var(--bg4);
+        color: var(--text2);
+      }
+      .win-btn.close:hover {
+        background: #c0392b;
+        color: #fff;
+      }
+      .win-btn svg {
+        width: 10px;
+        height: 10px;
+      }
+
+      #app {
+        flex: 1;
+        display: grid;
+        grid-template-columns: minmax(520px, 1.35fr) minmax(360px, 1fr);
+        gap: 16px;
+        padding: 16px;
+        overflow: hidden;
+      }
+
+      .panel {
+        background: rgba(26, 29, 39, 0.95);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      .panel-head {
+        padding: 11px 14px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg3);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .panel-title {
+        font-family: "Cinzel", serif;
+        font-size: 10px;
+        color: var(--gold2);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        flex: 1;
+      }
+      .panel-sub {
+        font-family: "JetBrains Mono", monospace;
+        color: var(--text3);
+        font-size: 10px;
+      }
+      .board-head-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: 2px;
+      }
+      .icon-btn {
+        width: 28px;
+        height: 28px;
+        border: 1px solid var(--border2);
+        border-radius: 7px;
+        background: color-mix(in srgb, var(--bg4) 78%, transparent);
+        color: var(--text2);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 14px;
+        line-height: 1;
+        transition: border-color 0.15s, color 0.15s, background 0.15s, transform 0.15s;
+      }
+      .icon-btn:hover {
+        border-color: var(--gold);
+        color: var(--gold2);
+        background: var(--gold-bg);
+      }
+      .icon-btn:active {
+        transform: translateY(1px);
+      }
+      .icon-btn.primary {
+        border-color: color-mix(in srgb, var(--gold) 60%, var(--border2));
+        color: var(--gold2);
+      }
+      .icon-btn.spinning {
+        animation: spin 0.8s linear infinite;
+      }
+
+      #left-col {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      #board-wrap {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+      }
+
+      #board {
+        width: min(78vh, 100%);
+        max-width: 700px;
+        aspect-ratio: 1;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #90734b;
+        box-shadow: 0 18px 40px rgba(0, 0, 0, 0.42);
+        display: grid;
+        grid-template-columns: repeat(8, minmax(0, 1fr));
+      }
+
+      .sq {
+        appearance: none;
+        padding: 0;
+        margin: 0;
+        width: 100%;
+        aspect-ratio: 1 / 1;
+        border: none;
+        position: relative;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .sq.light {
+        background: var(--white-sq);
+      }
+      .sq.dark {
+        background: var(--black-sq);
+      }
+      .sq.sel {
+        outline: 3px solid rgba(240, 185, 74, 0.75);
+        outline-offset: -3px;
+      }
+      .sq.last {
+        box-shadow: inset 0 0 0 999px rgba(240, 185, 74, 0.18);
+      }
+      .sq.check {
+        box-shadow: inset 0 0 0 999px rgba(240, 90, 90, 0.26);
+      }
+
+      .hint-dot {
+        position: absolute;
+        width: 26%;
+        height: 26%;
+        border-radius: 50%;
+        background: rgba(20, 22, 28, 0.32);
+      }
+
+      .piece {
+        width: 82%;
+        height: 82%;
+        object-fit: contain;
+        user-select: none;
+        pointer-events: none;
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.24));
+      }
+
+      .btn {
+        border: 1px solid var(--border2);
+        background: var(--bg3);
+        color: var(--text2);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        border-radius: var(--radius);
+        padding: 7px 10px;
+        cursor: pointer;
+      }
+      .btn:hover {
+        border-color: var(--gold);
+        color: var(--gold);
+      }
+      .btn.primary {
+        background: linear-gradient(135deg, #3a2808, #5a3f12);
+        border-color: #8f6b2a;
+        color: var(--gold2);
+      }
+
+      .field {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        background: var(--bg2);
+      }
+      .field label {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        color: var(--text3);
+        text-transform: uppercase;
+      }
+      .field input {
+        width: 120px;
+        border: 1px solid var(--border2);
+        border-radius: 6px;
+        background: var(--bg4);
+        color: var(--text);
+        padding: 6px 8px;
+        font-family: "JetBrains Mono", monospace;
+      }
+
+      #right-col {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+
+      #status-line {
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--border);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        color: var(--text2);
+        background: var(--bg2);
+      }
+      #status-line strong {
+        color: var(--gold);
+      }
+      #status-line.computing {
+        color: var(--gold2);
+      }
+
+      #popular-list {
+        padding: 10px;
+        overflow-y: auto;
+        flex: 1;
+      }
+
+      .move-row {
+        display: grid;
+        grid-template-columns: 30px 1fr 58px;
+        gap: 10px;
+        align-items: center;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--bg3);
+        padding: 8px 10px;
+        margin-bottom: 8px;
+        cursor: pointer;
+      }
+      .move-row:hover {
+        border-color: var(--gold-dim, #7a5c1e);
+      }
+      .move-rank {
+        text-align: right;
+        color: var(--text3);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+      }
+      .move-main {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+      }
+      .move-san {
+        font-family: "JetBrains Mono", monospace;
+        color: var(--text);
+        font-size: 12px;
+      }
+      .bar-wrap {
+        width: 100%;
+        height: 6px;
+        border-radius: 4px;
+        background: var(--bg4);
+        overflow: hidden;
+      }
+      .bar {
+        height: 100%;
+        background: linear-gradient(90deg, #8f6b2a, var(--gold));
+      }
+      .move-pct {
+        text-align: right;
+        color: var(--gold);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+      }
+
+      #history {
+        border-top: 1px solid var(--border);
+        background: var(--bg2);
+        padding: 10px 14px;
+        max-height: 140px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border2) var(--bg2);
+      }
+      #history::-webkit-scrollbar {
+        width: 4px;
+      }
+      #history::-webkit-scrollbar-track {
+        background: var(--bg2);
+        border-radius: 4px;
+      }
+      #history::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, #36406a, #7a5c1e);
+        border-radius: 4px;
+      }
+      #history::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(180deg, #4a5580, var(--gold));
+      }
+      #history-title {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        color: var(--text3);
+        text-transform: uppercase;
+        margin-bottom: 8px;
+      }
+      #history-list {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 12px;
+        line-height: 1.5;
+        color: var(--text2);
+      }
+
+      #overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(7, 8, 13, 0.88);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 30;
+      }
+      #overlay.show {
+        display: flex;
+      }
+      .overlay-box {
+        width: min(520px, 92vw);
+        border: 1px solid var(--border2);
+        border-radius: 12px;
+        background: var(--bg2);
+        padding: 18px;
+        text-align: center;
+      }
+      .overlay-title {
+        font-family: "Cinzel", serif;
+        color: var(--gold2);
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        font-size: 14px;
+      }
+      .overlay-sub {
+        color: var(--text2);
+        font-size: 13px;
+        margin: 10px 0 16px;
+      }
+
+      #error-toast {
+        position: fixed;
+        bottom: 22px;
+        right: 22px;
+        background: #140808;
+        border: 1px solid var(--red);
+        border-radius: 10px;
+        padding: 11px 15px;
+        color: #e88;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        z-index: 100;
+        transform: translateY(80px);
+        opacity: 0;
+        transition: all 0.28s;
+      }
+      #error-toast.show {
+        transform: translateY(0);
+        opacity: 1;
+      }
+
+      @media (max-width: 1120px) {
+        #app {
+          grid-template-columns: 1fr;
+        }
+
+        #board {
+          width: min(72vw, 620px);
+        }
+      }
+    </style>
+    <link rel="stylesheet" href="./theme.css" />
+    <script defer src="./settings.js"></script>
+  </head>
+  <body>
+    <div id="titlebar">
+      <div class="tb-logo">
+        <span class="tb-icon">♞</span>
+        <div class="tb-brand">
+          <div class="tb-name">Chess Analytics</div>
+          <div class="tb-sub">Explorer</div>
+        </div>
+      </div>
+
+      <div class="tb-nav">
+        <button class="nav-tab" onclick="window.api?.goExplorer()">⚔ Query</button>
+        <button class="nav-tab" onclick="window.api?.goAnalytics()">↗ Statistics</button>
+        <button class="nav-tab active">♞ Explorer</button>
+        <button class="nav-tab" onclick="window.api?.goOlap()">OLAP</button>
+        <button class="nav-tab" onclick="window.api?.goSettings()">⚙ Settings</button>
+      </div>
+
+      <!-- Centre status -->
+      <div class="tb-status">
+        <div class="tb-conn" id="tb-conn">
+          <span class="tb-dot" id="tb-dot"></span>
+          <span id="tb-conn-text">Not connected</span>
+        </div>
+        <button id="reset-game-btn" title="Reset game" onclick="restartGame()">⟳</button>
+      </div>
+
+      <div class="tb-win">
+        <button class="win-btn" onclick="window.api?.minimize()" title="Minimize">
+          <svg viewBox="0 0 10 1" fill="none">
+            <rect width="10" height="1" fill="currentColor" />
+          </svg>
+        </button>
+        <button class="win-btn" onclick="window.api?.maximize()" title="Maximize">
+          <svg viewBox="0 0 10 10" fill="none">
+            <rect x="0.5" y="0.5" width="9" height="9" rx="1" stroke="currentColor" />
+          </svg>
+        </button>
+        <button class="win-btn close" onclick="window.api?.close()" title="Close">
+          <svg viewBox="0 0 10 10" fill="none">
+            <line x1="1" y1="1" x2="9" y2="9" stroke="currentColor" stroke-width="1.2" />
+            <line x1="9" y1="1" x2="1" y2="9" stroke="currentColor" stroke-width="1.2" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div id="app">
+      <div id="left-col" class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Chess Board</span>
+          <span class="panel-sub" id="turn-pill">White to move</span>
+          <div class="board-head-actions" aria-label="Board controls">
+            <button class="icon-btn" onclick="undoMove()" title="Undo move" aria-label="Undo move">↶</button>
+          </div>
+        </div>
+
+        <div id="board-wrap">
+          <div id="board"></div>
+        </div>
+      </div>
+
+      <div id="right-col" class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Moves Taken In This Position</span>
+        </div>
+
+        <div id="status-line"><strong>Ready.</strong> Make any legal move to explore responses.</div>
+        <div id="popular-list"></div>
+
+        <div id="history">
+          <div id="history-title">Move History</div>
+          <div id="history-list">-</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="overlay">
+      <div class="overlay-box">
+        <div class="overlay-title">Database Connection Required</div>
+        <div class="overlay-sub">
+          Connect in the Query tab first, then come back here for live opening statistics.
+        </div>
+        <button class="btn primary" onclick="window.api?.goExplorer()">Go To Query</button>
+      </div>
+    </div>
+
+    <div id="error-toast"></div>
+
+    <script>
+      const PIECE_ASSET = {
+        wp: "../../assets/pieces/white_pawn.svg",
+        wn: "../../assets/pieces/white_knight.svg",
+        wb: "../../assets/pieces/white_bishop.svg",
+        wr: "../../assets/pieces/white_rook.svg",
+        wq: "../../assets/pieces/white_queen.svg",
+        wk: "../../assets/pieces/white_king.svg",
+        bp: "../../assets/pieces/black_pawn.svg",
+        bn: "../../assets/pieces/black_knight.svg",
+        bb: "../../assets/pieces/black_bishop.svg",
+        br: "../../assets/pieces/black_rook.svg",
+        bq: "../../assets/pieces/black_queen.svg",
+        bk: "../../assets/pieces/black_king.svg",
+      };
+
+      const STORAGE_KEY = "explorer_game_history_v2";
+
+      let game = null;
+      let ChessEngine = null;
+      let selectedSquare = null;
+      let legalTargets = [];
+      let connected = false;
+      let loadingPopular = false;
+      let pendingPopularRefresh = false;
+      let popularRequestSeq = 0;
+      let animatingMove = false;
+      let errorTimeout = null;
+
+      async function ensureChessEngine() {
+        if (ChessEngine) return ChessEngine;
+        const mod = await import("../../node_modules/chess.js/dist/esm/chess.js");
+        ChessEngine = mod.Chess;
+        return ChessEngine;
+      }
+
+      function sqColor(fileIndex, rankNumber) {
+        return (fileIndex + rankNumber) % 2 === 1 ? "dark" : "light";
+      }
+
+      function isInCheck() {
+        if (!game) return false;
+        if (typeof game.inCheck === "function") return game.inCheck();
+        if (typeof game.isCheck === "function") return game.isCheck();
+        if (typeof game.in_check === "function") return game.in_check();
+        return false;
+      }
+
+      function isGameOver() {
+        if (!game) return false;
+        if (typeof game.isGameOver === "function") return game.isGameOver();
+        return typeof game.game_over === "function" ? game.game_over() : false;
+      }
+
+      function isCheckmate() {
+        if (!game) return false;
+        if (typeof game.isCheckmate === "function") return game.isCheckmate();
+        return typeof game.in_checkmate === "function" ? game.in_checkmate() : false;
+      }
+
+      function sideLabel(side) {
+        return side === "w" ? "White" : "Black";
+      }
+
+      function kingSquareFor(color) {
+        const pos = game.board();
+        for (let row = 0; row < 8; row++) {
+          for (let col = 0; col < 8; col++) {
+            const piece = pos[row][col];
+            if (piece && piece.color === color && piece.type === "k") {
+              const rankNumber = 8 - row;
+              const file = "abcdefgh"[col];
+              return file + String(rankNumber);
+            }
+          }
+        }
+        return null;
+      }
+
+      function getCurrentTurnText() {
+        return game.turn() === "w" ? "White to move" : "Black to move";
+      }
+
+      function setStatus(html, computing = false) {
+        const el = document.getElementById("status-line");
+        el.classList.toggle("computing", computing);
+        el.innerHTML = html;
+      }
+
+      function shouldRememberExplorer() {
+        return window.AppSettings?.read().rememberExplorer !== false;
+      }
+
+      function saveGameState() {
+        if (!shouldRememberExplorer()) {
+          localStorage.removeItem(STORAGE_KEY);
+          return;
+        }
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(game.history()));
+        } catch {
+          // ignore storage errors
+        }
+      }
+
+      function restoreGameState() {
+        if (!shouldRememberExplorer()) return;
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          const sanMoves = JSON.parse(raw);
+          if (!Array.isArray(sanMoves)) return;
+          sanMoves.forEach((san) => {
+            if (typeof san !== "string" || !san.trim()) return;
+            game.move(san, { sloppy: true });
+          });
+        } catch {
+          // ignore invalid stored state
+        }
+      }
+
+      function renderBoard() {
+        const board = document.getElementById("board");
+        const pos = game.board();
+        const checkSq = isInCheck() ? kingSquareFor(game.turn()) : null;
+        const lastMove = game.history({ verbose: true }).slice(-1)[0] || null;
+        board.innerHTML = "";
+
+        for (let rankNumber = 8; rankNumber >= 1; rankNumber--) {
+          const rowIndex = 8 - rankNumber;
+          for (let file = 0; file < 8; file++) {
+            const sqName = "abcdefgh"[file] + String(rankNumber);
+            const cell = document.createElement("button");
+            cell.className = `sq ${sqColor(file, rankNumber)}`;
+            cell.dataset.sq = sqName;
+            if (selectedSquare === sqName) cell.classList.add("sel");
+            if (checkSq && checkSq === sqName) cell.classList.add("check");
+            if (lastMove && (lastMove.from === sqName || lastMove.to === sqName)) {
+              cell.classList.add("last");
+            }
+
+            cell.onclick = () => onSquareClick(sqName);
+
+            if (legalTargets.includes(sqName)) {
+              const hint = document.createElement("span");
+              hint.className = "hint-dot";
+              cell.appendChild(hint);
+            }
+
+            const piece = pos[rowIndex][file];
+            if (piece) {
+              const img = document.createElement("img");
+              img.className = "piece";
+              img.alt = piece.color + piece.type;
+              img.src = PIECE_ASSET[piece.color + piece.type] || "";
+              cell.appendChild(img);
+            }
+
+            board.appendChild(cell);
+          }
+        }
+
+        document.getElementById("turn-pill").textContent = getCurrentTurnText();
+      }
+
+      async function animateMovePiece(move) {
+        const board = document.getElementById("board");
+        const fromEl = board.querySelector(`[data-sq="${move.from}"]`);
+        const toEl = board.querySelector(`[data-sq="${move.to}"]`);
+        if (!fromEl || !toEl) return;
+
+        const pieceKey = move.color + move.piece;
+        const imgSrc = PIECE_ASSET[pieceKey];
+        if (!imgSrc) return;
+
+        const fromRect = fromEl.getBoundingClientRect();
+        const toRect = toEl.getBoundingClientRect();
+        const ghost = document.createElement("img");
+        ghost.src = imgSrc;
+        ghost.style.position = "fixed";
+        ghost.style.left = `${fromRect.left + fromRect.width * 0.09}px`;
+        ghost.style.top = `${fromRect.top + fromRect.height * 0.09}px`;
+        ghost.style.width = `${fromRect.width * 0.82}px`;
+        ghost.style.height = `${fromRect.height * 0.82}px`;
+        ghost.style.pointerEvents = "none";
+        ghost.style.zIndex = "999";
+        ghost.style.transition = "transform 170ms ease-in-out";
+
+        document.body.appendChild(ghost);
+        await new Promise((resolve) => requestAnimationFrame(resolve));
+
+        const dx = toRect.left - fromRect.left;
+        const dy = toRect.top - fromRect.top;
+        ghost.style.transform = `translate(${dx}px, ${dy}px)`;
+
+        await new Promise((resolve) => setTimeout(resolve, 190));
+        ghost.remove();
+      }
+
+      async function onSquareClick(square) {
+        if (!game || animatingMove) return;
+
+        const piece = game.get(square);
+        const turn = game.turn();
+
+        if (selectedSquare && legalTargets.includes(square)) {
+          const move = game.move({ from: selectedSquare, to: square, promotion: "q" });
+          if (!move) return;
+          selectedSquare = null;
+          legalTargets = [];
+          animatingMove = true;
+          await animateMovePiece(move);
+          animatingMove = false;
+          onPositionChanged(false);
+          return;
+        }
+
+        if (piece && piece.color === turn) {
+          selectedSquare = square;
+          legalTargets = game.moves({ square, verbose: true }).map((m) => m.to);
+          renderBoard();
+          return;
+        }
+
+        selectedSquare = null;
+        legalTargets = [];
+        renderBoard();
+      }
+
+      function renderHistory() {
+        const history = game.history();
+        if (!history.length) {
+          document.getElementById("history-list").textContent = "-";
+          return;
+        }
+
+        const lines = [];
+        for (let i = 0; i < history.length; i += 2) {
+          const moveNo = i / 2 + 1;
+          const white = history[i] || "";
+          const black = history[i + 1] || "";
+          lines.push(`${moveNo}. ${white}${black ? " " + black : ""}`);
+        }
+        document.getElementById("history-list").innerHTML = lines.join("<br>");
+      }
+
+      function renderPopularMoves(moves) {
+        const list = document.getElementById("popular-list");
+        list.innerHTML = "";
+
+        if (!moves || !moves.length) {
+          list.innerHTML =
+            '<div class="panel-sub" style="padding:12px">No popular continuations found for this position.</div>';
+          return;
+        }
+
+        moves.forEach((m, idx) => {
+          const row = document.createElement("div");
+          row.className = "move-row";
+          row.innerHTML = `
+            <div class="move-rank">${idx + 1}</div>
+            <div class="move-main">
+              <div class="move-san">${m.san} <span style="color:var(--text3)">(${m.count.toLocaleString()} games)</span></div>
+              <div class="bar-wrap"><div class="bar" style="width:${Math.min(100, Number(m.pct || 0))}%"></div></div>
+            </div>
+            <div class="move-pct">${Number(m.pct || 0).toFixed(1)}%</div>
+          `;
+          row.onclick = () => playSanMove(m.san);
+          list.appendChild(row);
+        });
+      }
+
+      function postGameMessage() {
+        if (isCheckmate()) {
+          const winner = sideLabel(game.turn() === "w" ? "b" : "w");
+          return `<strong>Checkmate.</strong> ${winner} wins.`;
+        }
+        if (isGameOver()) {
+          return "<strong>Game over.</strong> No legal moves available.";
+        }
+        if (isInCheck()) {
+          return `<strong>${sideLabel(game.turn())} is in check.</strong> Computing most common escapes...`;
+        }
+        return `<strong>${getCurrentTurnText()}.</strong> Computing most common moves...`;
+      }
+
+      async function playSanMove(san) {
+        if (animatingMove) return;
+        const move = game.move(san, { sloppy: true });
+        if (!move) {
+          showError(`Could not play SAN move: ${san}`);
+          return;
+        }
+        selectedSquare = null;
+        legalTargets = [];
+        animatingMove = true;
+        await animateMovePiece(move);
+        animatingMove = false;
+        onPositionChanged(false);
+      }
+
+      async function loadPopularMoves(forceRefresh) {
+        if (loadingPopular) {
+          pendingPopularRefresh = pendingPopularRefresh || !!forceRefresh;
+          return;
+        }
+        if (!window.api?.popularMoves) return;
+
+        if (!connected) {
+          await refreshConnectionStatus();
+          if (!connected) {
+            setStatus(
+              "<strong>Board is ready.</strong> Connect in Query tab to see live popular moves.",
+              false,
+            );
+            return;
+          }
+        }
+
+        if (isGameOver()) {
+          document.getElementById("popular-list").innerHTML =
+            '<div class="panel-sub" style="padding:12px">No continuations because the game has ended.</div>';
+          setStatus(postGameMessage(), false);
+          return;
+        }
+
+        loadingPopular = true;
+        const reqId = ++popularRequestSeq;
+        setStatus(postGameMessage(), true);
+
+        try {
+          const payload = await window.api.popularMoves({
+            history: game.history(),
+            moveLimit: 10,
+            forceRefresh: !!forceRefresh,
+          });
+
+          if (reqId !== popularRequestSeq) return;
+
+          if (payload.error) {
+            showError(payload.error);
+            setStatus("<strong>Could not compute popular moves.</strong>", false);
+            return;
+          }
+
+          const analyzed = Number(payload.sampledGames || 0).toLocaleString();
+
+          if (!payload.moves || !payload.moves.length) {
+            setStatus(`<strong>${getCurrentTurnText()}.</strong> No matching continuations found.`, false);
+            renderPopularMoves([]);
+            return;
+          }
+
+          setStatus(`<strong>${getCurrentTurnText()}.</strong> Showing most common continuations (<=5s compute).`, false);
+          renderPopularMoves(payload.moves);
+        } catch (err) {
+          showError(err.message || "Failed to load popular moves");
+          setStatus("<strong>Failed to compute popular moves.</strong>", false);
+        } finally {
+          if (reqId === popularRequestSeq) {
+            loadingPopular = false;
+            if (pendingPopularRefresh) {
+              const pendingForce = pendingPopularRefresh;
+              pendingPopularRefresh = false;
+              loadPopularMoves(pendingForce);
+            }
+          }
+        }
+      }
+
+      function onPositionChanged(forceRefresh = false) {
+        renderBoard();
+        renderHistory();
+        saveGameState();
+        loadPopularMoves(forceRefresh);
+      }
+
+      function undoMove() {
+        if (!game || animatingMove) return;
+        const undone = game.undo();
+        if (!undone) return;
+        selectedSquare = null;
+        legalTargets = [];
+        onPositionChanged(false);
+      }
+
+      function restartGame() {
+        if (!game) return;
+        const buttons = [
+          document.getElementById("reset-game-btn"),
+        ].filter(Boolean);
+        buttons.forEach((btn) => {
+          btn.classList.add("spinning");
+          setTimeout(() => btn.classList.remove("spinning"), 600);
+        });
+        game.reset();
+        selectedSquare = null;
+        legalTargets = [];
+        localStorage.removeItem(STORAGE_KEY);
+        onPositionChanged(true);
+      }
+
+      function showError(msg) {
+        const e = document.getElementById("error-toast");
+        e.textContent = "⚠ " + msg;
+        e.classList.add("show");
+        clearTimeout(errorTimeout);
+        errorTimeout = setTimeout(() => e.classList.remove("show"), 5000);
+      }
+
+      async function refreshConnectionStatus() {
+        if (!window.api?.getConnectionState) return false;
+
+        const state = await window.api.getConnectionState();
+        const dot = document.getElementById("tb-dot");
+        const conn = document.getElementById("tb-conn");
+        const text = document.getElementById("tb-conn-text");
+
+        connected = !!state?.connected;
+        if (connected) {
+          dot.className = "tb-dot connected";
+          conn.className = "tb-conn connected";
+          text.textContent = "Connected";
+        } else {
+          dot.className = "tb-dot";
+          conn.className = "tb-conn";
+          text.textContent = "Not connected";
+        }
+
+        return connected;
+      }
+
+      async function initConnection() {
+        const isConnected = await refreshConnectionStatus();
+        if (isConnected) {
+          await loadPopularMoves(false);
+        } else {
+          setStatus("<strong>Board is ready.</strong> Connect in Query tab to see live popular moves.", false);
+        }
+      }
+
+      window.addEventListener("DOMContentLoaded", async () => {
+        try {
+          const ChessCtor = await ensureChessEngine();
+          game = new ChessCtor();
+          restoreGameState();
+          renderBoard();
+          renderHistory();
+          await initConnection();
+        } catch (err) {
+          showError("Failed to load chess engine: " + (err.message || err));
+        }
+      });
+    </script>
+  </body>
+</html>

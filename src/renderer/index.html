@@ -1,0 +1,2126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chess Analytics</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap");
+
+      /* ── Variables ── */
+      :root {
+        --bg: #12141a;
+        --bg2: #1a1d27;
+        --bg3: #202431;
+        --bg4: #252a3a;
+        --bg5: #2c3245;
+        --border: #2a3048;
+        --border2: #36406a;
+        --gold: #f0b94a;
+        --gold2: #ffd97a;
+        --gold-dim: #7a5c1e;
+        --gold-bg: rgba(240, 185, 74, 0.08);
+        --white-sq: #f0d9b5;
+        --black-sq: #b58863;
+        --text: #eef0f8;
+        --text2: #a8b0cc;
+        --text3: #5a6380;
+        --red: #f05a5a;
+        --green: #4ec98a;
+        --blue: #5ba4e5;
+        --purple: #a07de8;
+        --glow: rgba(240, 185, 74, 0.22);
+        --glow2: rgba(240, 185, 74, 0.07);
+        --radius: 6px;
+        --radius2: 10px;
+      }
+
+      /* ── Reset ── */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        user-select: none;
+      }
+
+      /* ── Scrollbar ── */
+      ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--bg2);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border2);
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--gold-dim);
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   TITLEBAR
+═══════════════════════════════════════════════════════ */
+      #titlebar {
+        display: flex;
+        align-items: center;
+        height: 44px;
+        background: var(--bg2);
+        border-bottom: 1px solid var(--border);
+        padding: 0 0 0 20px;
+        -webkit-app-region: drag;
+        flex-shrink: 0;
+        gap: 0;
+      }
+
+      /* Left: logo */
+      .tb-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-right: 20px;
+      }
+      .tb-icon {
+        font-size: 19px;
+        line-height: 1;
+        width: 20px;
+        text-align: center;
+        filter: drop-shadow(0 0 6px var(--gold));
+      }
+      .tb-icon.pawn {
+        color: var(--gold);
+      }
+      .tb-brand {
+        display: flex;
+        flex-direction: column;
+      }
+      .tb-name {
+        font-family: "Cinzel", serif;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        color: var(--gold);
+        text-transform: uppercase;
+        line-height: 1;
+      }
+      .tb-sub {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9px;
+        color: var(--text3);
+        letter-spacing: 0.08em;
+        margin-top: 2px;
+      }
+
+      /* ── Nav Tabs ── */
+      .tb-nav {
+        display: flex;
+        align-items: stretch;
+        height: 44px;
+        -webkit-app-region: no-drag;
+      }
+      .nav-tab {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 18px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        color: var(--text3);
+        border: none;
+        background: none;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition:
+          color 0.15s,
+          background 0.15s,
+          border-color 0.15s;
+        text-transform: uppercase;
+        -webkit-app-region: no-drag;
+      }
+      .nav-tab:hover {
+        color: var(--text2);
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .nav-tab.active {
+        color: var(--gold);
+        border-bottom-color: var(--gold);
+        background: var(--gold-bg);
+      }
+
+      /* Centre: connection status strip */
+      .tb-status {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex: 1;
+        -webkit-app-region: drag;
+        padding-left: 16px;
+      }
+      .tb-conn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: 20px;
+        border: 1px solid var(--border2);
+        background: var(--bg3);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        color: var(--text3);
+        -webkit-app-region: no-drag;
+        transition:
+          border-color 0.2s,
+          color 0.2s;
+      }
+      .tb-conn.connected {
+        border-color: rgba(61, 170, 111, 0.35);
+        color: var(--green);
+      }
+      .tb-conn.error {
+        border-color: rgba(214, 69, 69, 0.35);
+        color: var(--red);
+      }
+      .tb-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--text3);
+        transition: background 0.3s;
+        flex-shrink: 0;
+      }
+      .tb-dot.connected {
+        background: var(--green);
+        box-shadow: 0 0 5px var(--green);
+      }
+      .tb-dot.error {
+        background: var(--red);
+      }
+
+      .tb-stats {
+        display: none;
+        align-items: center;
+        gap: 16px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        color: var(--text3);
+      }
+      .tb-stats.visible {
+        display: flex;
+      }
+      .tb-stat-val {
+        color: var(--gold);
+        font-weight: 500;
+        margin-right: 2px;
+      }
+      .tb-divider {
+        width: 1px;
+        height: 12px;
+        background: var(--border2);
+      }
+
+      /* Right: window controls */
+      .tb-win {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        margin-left: auto;
+        height: 44px;
+        -webkit-app-region: no-drag;
+      }
+      .win-btn {
+        width: 46px;
+        height: 44px;
+        border: none;
+        background: transparent;
+        color: var(--text3);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        transition:
+          background 0.12s,
+          color 0.12s;
+        font-family: "JetBrains Mono", monospace;
+      }
+      .win-btn:hover {
+        background: var(--bg4);
+        color: var(--text2);
+      }
+      .win-btn.close:hover {
+        background: #c0392b;
+        color: #fff;
+      }
+      .win-btn svg {
+        width: 10px;
+        height: 10px;
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   APP LAYOUT
+═══════════════════════════════════════════════════════ */
+      #app {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   SIDEBAR
+═══════════════════════════════════════════════════════ */
+      #sidebar {
+        width: 300px;
+        min-width: 270px;
+        background: var(--bg2);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+
+      .sidebar-header {
+        padding: 14px 18px 10px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg3);
+      }
+      .sidebar-title {
+        font-family: "Cinzel", serif;
+        font-size: 9.5px;
+        letter-spacing: 0.18em;
+        color: var(--gold);
+        text-transform: uppercase;
+        margin-bottom: 3px;
+      }
+      .sidebar-desc {
+        font-size: 10.5px;
+        color: var(--text3);
+        line-height: 1.5;
+      }
+
+      /* Connection panel */
+      #conn-panel {
+        padding: 14px 18px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg3);
+      }
+      .conn-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 7px;
+        align-items: center;
+      }
+      .conn-row:last-child {
+        margin-bottom: 0;
+      }
+      .conn-label {
+        font-size: 9.5px;
+        color: var(--text3);
+        font-family: "JetBrains Mono", monospace;
+        width: 46px;
+        flex-shrink: 0;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+      .conn-input {
+        flex: 1;
+        background: var(--bg4);
+        border: 1px solid var(--border2);
+        border-radius: var(--radius);
+        color: var(--text);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        padding: 5px 8px;
+        outline: none;
+        transition: border-color 0.18s;
+      }
+      .conn-input:focus {
+        border-color: var(--gold-dim);
+      }
+
+      #connect-btn {
+        width: 100%;
+        margin-top: 10px;
+        padding: 8px;
+        background: linear-gradient(135deg, #160f03, #231804);
+        border: 1px solid var(--gold-dim);
+        border-radius: var(--radius);
+        color: var(--gold);
+        font-family: "Cinzel", serif;
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        cursor: pointer;
+        transition: all 0.18s;
+        text-transform: uppercase;
+      }
+      #connect-btn:hover {
+        background: linear-gradient(135deg, #231804, #332510);
+        border-color: var(--gold);
+        box-shadow: 0 0 14px var(--glow);
+      }
+
+      /* Filters scroll */
+      #filters-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 0 0 12px;
+      }
+
+      .filter-section {
+        border-bottom: 1px solid var(--border);
+      }
+      .filter-section:last-child {
+        border-bottom: none;
+      }
+
+      .section-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 11px 18px;
+        cursor: pointer;
+        transition: background 0.12s;
+      }
+      .section-header:hover {
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .section-icon {
+        font-size: 13px;
+      }
+      .section-label {
+        font-family: "Cinzel", serif;
+        font-size: 9.5px;
+        letter-spacing: 0.14em;
+        color: var(--gold2);
+        text-transform: uppercase;
+        flex: 1;
+      }
+      .section-chevron {
+        font-size: 10px;
+        color: var(--text3);
+        transition: transform 0.2s;
+      }
+      .section-header.collapsed .section-chevron {
+        transform: rotate(-90deg);
+      }
+      .section-body {
+        padding: 0 18px 14px;
+      }
+      .section-body.hidden {
+        display: none;
+      }
+
+      .filter-row {
+        margin-bottom: 9px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .filter-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .filter-label {
+        font-size: 9.5px;
+        color: var(--text3);
+        letter-spacing: 0.07em;
+        font-family: "JetBrains Mono", monospace;
+        text-transform: uppercase;
+      }
+
+      .filter-select {
+        width: 100%;
+        background: var(--bg4);
+        border: 1px solid var(--border2);
+        border-radius: var(--radius);
+        color: var(--text);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        padding: 5px 28px 5px 9px;
+        outline: none;
+        cursor: pointer;
+        transition: border-color 0.18s;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='5'%3E%3Cpath d='M0 0l4.5 5 4.5-5z' fill='%23454d65'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+      }
+      .filter-select:focus {
+        border-color: var(--gold-dim);
+      }
+      .filter-select option {
+        background: var(--bg3);
+      }
+
+      .filter-input-row {
+        display: flex;
+        gap: 5px;
+      }
+      .filter-input {
+        flex: 1;
+        background: var(--bg4);
+        border: 1px solid var(--border2);
+        border-radius: var(--radius);
+        color: var(--text);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        padding: 5px 8px;
+        outline: none;
+        transition: border-color 0.18s;
+      }
+      .filter-input:focus {
+        border-color: var(--gold-dim);
+      }
+      .filter-input::placeholder {
+        color: var(--text3);
+      }
+
+      /* ── Square Picker ── */
+      .square-grid {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 2px;
+        background: var(--bg5);
+        border: 1px solid var(--border2);
+        border-radius: var(--radius);
+        padding: 5px;
+      }
+      .sq-cell {
+        aspect-ratio: 1;
+        border-radius: 2px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 6.5px;
+        font-family: "JetBrains Mono", monospace;
+        transition: all 0.1s;
+      }
+      .sq-cell.light {
+        background: rgba(240, 217, 181, 0.1);
+        color: rgba(240, 217, 181, 0.3);
+      }
+      .sq-cell.dark {
+        background: rgba(181, 136, 99, 0.1);
+        color: rgba(181, 136, 99, 0.3);
+      }
+      .sq-cell:hover {
+        opacity: 0.8;
+        transform: scale(1.08);
+      }
+      .sq-cell.selected.light {
+        background: var(--gold);
+        color: #000;
+        box-shadow: 0 0 6px var(--gold);
+      }
+      .sq-cell.selected.dark {
+        background: var(--gold2);
+        color: #000;
+        box-shadow: 0 0 6px var(--gold2);
+      }
+      .sq-label-row {
+        display: flex;
+        justify-content: space-around;
+        padding: 3px 5px 0;
+      }
+      .sq-label {
+        font-size: 7.5px;
+        color: var(--text3);
+        font-family: "JetBrains Mono", monospace;
+      }
+      .sq-clear-btn {
+        margin-top: 4px;
+        font-size: 9.5px;
+        color: var(--text3);
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-family: "JetBrains Mono", monospace;
+        padding: 2px 0;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      .sq-clear-btn:hover {
+        color: var(--gold);
+      }
+
+      /* ── Run Section ── */
+      #run-section {
+        padding: 14px 18px;
+        border-top: 1px solid var(--border);
+        background: var(--bg2);
+        flex-shrink: 0;
+      }
+      #run-btn {
+        width: 100%;
+        padding: 11px;
+        background: linear-gradient(135deg, var(--gold-dim), #3a2808);
+        border: 1px solid var(--gold);
+        border-radius: var(--radius);
+        color: var(--gold2);
+        font-family: "Cinzel", serif;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        cursor: pointer;
+        text-transform: uppercase;
+        transition: all 0.18s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      #run-btn:hover:not(:disabled) {
+        background: linear-gradient(135deg, #3a2808, #543c10);
+        box-shadow:
+          0 0 22px var(--glow),
+          0 4px 14px rgba(0, 0, 0, 0.5);
+        transform: translateY(-1px);
+      }
+      #run-btn:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      #run-btn.loading .btn-icon {
+        animation: spin 0.9s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      #reset-btn {
+        width: 100%;
+        margin-top: 7px;
+        padding: 6px;
+        background: none;
+        border: 1px solid var(--border2);
+        border-radius: var(--radius);
+        color: var(--text3);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        cursor: pointer;
+        letter-spacing: 0.04em;
+        transition: all 0.14s;
+      }
+      #reset-btn:hover {
+        border-color: var(--text3);
+        color: var(--text2);
+      }
+
+      /* ── Statistics shortcut btn ── */
+      .nav-shortcut-btn {
+        width: 100%;
+        margin-top: 7px;
+        padding: 6px;
+        background: none;
+        border: 1px solid var(--border2);
+        border-radius: var(--radius);
+        color: var(--text3);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        cursor: pointer;
+        letter-spacing: 0.04em;
+        transition: all 0.14s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      .nav-shortcut-btn:hover {
+        border-color: var(--gold-dim);
+        color: var(--gold);
+      }
+
+      /* ═══════════════════════════════════════════════════════
+   MAIN CONTENT
+═══════════════════════════════════════════════════════ */
+      #main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        background: var(--bg);
+        position: relative;
+      }
+
+      /* Results header */
+      #results-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 22px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg2);
+        flex-shrink: 0;
+      }
+      .results-title {
+        font-family: "Cinzel", serif;
+        font-size: 11px;
+        letter-spacing: 0.14em;
+        color: var(--gold);
+        text-transform: uppercase;
+      }
+      .results-meta {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .meta-pill {
+        background: var(--bg3);
+        border: 1px solid var(--border2);
+        border-radius: 20px;
+        padding: 3px 10px;
+        font-size: 10px;
+        font-family: "JetBrains Mono", monospace;
+        color: var(--text2);
+      }
+      .meta-pill.highlight {
+        border-color: var(--gold-dim);
+        color: var(--gold);
+      }
+
+      #export-btn {
+        background: var(--bg3);
+        border: 1px solid var(--border2);
+        border-radius: var(--radius);
+        color: var(--text2);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        padding: 4px 10px;
+        cursor: pointer;
+        transition: all 0.14s;
+      }
+      #export-btn:hover {
+        border-color: var(--gold-dim);
+        color: var(--gold);
+      }
+
+      /* SQL bar */
+      #sql-bar {
+        background: var(--bg3);
+        border-bottom: 1px solid var(--border);
+        padding: 7px 22px;
+        display: none;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      #sql-bar.visible {
+        display: flex;
+      }
+      .sql-label {
+        font-size: 8.5px;
+        color: var(--gold-dim);
+        font-family: "JetBrains Mono", monospace;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        margin-top: 2px;
+        flex-shrink: 0;
+      }
+      #sql-text {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9.5px;
+        color: var(--text3);
+        line-height: 1.6;
+        word-break: break-all;
+        flex: 1;
+      }
+      #sql-text .kw {
+        color: #569cd6;
+      }
+      #sql-text .tbl {
+        color: #4ec9b0;
+      }
+      #sql-text .col {
+        color: #9cdcfe;
+      }
+      #sql-text .val {
+        color: #ce9178;
+      }
+
+      /* Summary bar */
+      #summary-bar {
+        display: none;
+        gap: 0;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg2);
+        flex-shrink: 0;
+      }
+      #summary-bar.visible {
+        display: flex;
+      }
+      .sum-card {
+        flex: 1;
+        padding: 9px 16px;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .sum-card:last-child {
+        border-right: none;
+      }
+      .sum-val {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 16px;
+        color: var(--gold);
+        font-weight: 500;
+      }
+      .sum-key {
+        font-size: 9px;
+        color: var(--text3);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+
+      /* Empty state */
+      #empty-state {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        color: var(--text3);
+      }
+      .empty-board {
+        display: grid;
+        grid-template-columns: repeat(8, 30px);
+        grid-template-rows: repeat(8, 30px);
+        opacity: 0.2;
+      }
+      .eb-light {
+        background: rgba(240, 217, 181, 0.18);
+      }
+      .eb-dark {
+        background: rgba(181, 136, 99, 0.18);
+      }
+      .empty-title {
+        font-family: "Cinzel", serif;
+        font-size: 15px;
+        color: var(--text3);
+        letter-spacing: 0.08em;
+      }
+      .empty-sub {
+        font-size: 11.5px;
+        color: var(--text3);
+        opacity: 0.55;
+      }
+
+      /* Table */
+      #table-wrap {
+        flex: 1;
+        overflow: auto;
+        display: none;
+      }
+      #table-wrap.visible {
+        display: block;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11.5px;
+      }
+      thead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+      thead tr {
+        background: var(--bg3);
+        border-bottom: 2px solid var(--border2);
+      }
+      th {
+        padding: 9px 14px;
+        text-align: left;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 8.5px;
+        letter-spacing: 0.12em;
+        color: var(--gold);
+        text-transform: uppercase;
+        font-weight: 500;
+        white-space: nowrap;
+        cursor: pointer;
+        user-select: none;
+        transition: color 0.14s;
+      }
+      th:hover {
+        color: var(--gold2);
+      }
+      th .sort-arrow {
+        margin-left: 4px;
+        opacity: 0.35;
+        font-size: 8px;
+      }
+      th.sorted .sort-arrow {
+        opacity: 1;
+      }
+
+      tbody tr {
+        border-bottom: 1px solid var(--border);
+        transition: background 0.08s;
+      }
+      tbody tr:hover {
+        background: var(--bg3);
+      }
+      tbody tr:last-child {
+        border-bottom: none;
+      }
+
+      td {
+        padding: 7px 14px;
+        color: var(--text);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11.5px;
+        white-space: nowrap;
+        vertical-align: middle;
+      }
+
+      .td-id a {
+        color: var(--gold);
+        text-decoration: none;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+      }
+      .td-id a:hover {
+        text-decoration: underline;
+        color: var(--gold2);
+      }
+
+      .result-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 7px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 600;
+      }
+      .result-white {
+        background: rgba(240, 217, 181, 0.1);
+        color: #f0d9b5;
+        border: 1px solid rgba(240, 217, 181, 0.2);
+      }
+      .result-black {
+        background: rgba(40, 40, 50, 0.7);
+        color: #aaa;
+        border: 1px solid #2a2a3a;
+      }
+      .result-draw {
+        background: rgba(61, 142, 201, 0.1);
+        color: #5dade2;
+        border: 1px solid rgba(61, 142, 201, 0.2);
+      }
+
+      .piece-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        font-size: 13px;
+      }
+
+      .elo-cell {
+        color: var(--text);
+      }
+      .elo-high {
+        color: var(--gold2);
+      }
+      .elo-low {
+        color: var(--text3);
+      }
+
+      .opening-cell {
+        max-width: 180px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--text2);
+      }
+      .eco-code {
+        color: var(--gold-dim);
+        margin-right: 4px;
+      }
+
+      .sq-badge {
+        display: inline-block;
+        background: var(--bg5);
+        border: 1px solid var(--border2);
+        border-radius: 3px;
+        padding: 1px 5px;
+        font-size: 10px;
+        letter-spacing: 0.05em;
+      }
+
+      .san-move {
+        color: #7ec8e3;
+        font-weight: 500;
+      }
+
+      .tc-pill {
+        font-size: 10px;
+        padding: 1px 6px;
+        border-radius: 3px;
+        background: var(--bg5);
+        border: 1px solid var(--border);
+        color: var(--text3);
+      }
+
+      .term-badge {
+        display: inline-block;
+        padding: 1px 7px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: 600;
+      }
+      .term-checkmate {
+        background: rgba(212, 168, 67, 0.12);
+        color: var(--gold);
+        border: 1px solid rgba(212, 168, 67, 0.25);
+      }
+      .term-resign {
+        background: rgba(61, 142, 201, 0.1);
+        color: var(--blue);
+        border: 1px solid rgba(61, 142, 201, 0.25);
+      }
+      .term-timeout {
+        background: rgba(139, 109, 224, 0.1);
+        color: var(--purple);
+        border: 1px solid rgba(139, 109, 224, 0.25);
+      }
+      .term-draw {
+        background: rgba(136, 146, 170, 0.1);
+        color: var(--text2);
+        border: 1px solid var(--border2);
+      }
+      .term-other {
+        background: var(--bg4);
+        color: var(--text3);
+        border: 1px solid var(--border);
+      }
+
+      /* Loading overlay */
+      #loading-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(7, 8, 13, 0.82);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+      }
+      #loading-overlay.visible {
+        display: flex;
+      }
+      .loading-inner {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+      }
+      .chess-spinner {
+        font-size: 34px;
+        animation: spin 0.9s linear infinite;
+      }
+      .loading-text {
+        font-family: "Cinzel", serif;
+        font-size: 12px;
+        color: var(--gold);
+        letter-spacing: 0.12em;
+      }
+
+      /* Error toast */
+      #error-toast {
+        position: fixed;
+        bottom: 22px;
+        right: 22px;
+        background: #140808;
+        border: 1px solid var(--red);
+        border-radius: var(--radius2);
+        padding: 11px 16px;
+        color: #e88;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        z-index: 200;
+        max-width: 380px;
+        transform: translateY(80px);
+        opacity: 0;
+        transition: all 0.28s;
+        pointer-events: none;
+      }
+      #error-toast.show {
+        transform: translateY(0);
+        opacity: 1;
+      }
+
+      #stats-bar {
+        display: none;
+      }
+    </style>
+    <link rel="stylesheet" href="./theme.css" />
+    <script defer src="./settings.js"></script>
+  </head>
+  <body>
+    <!-- ═══════════════════════════════════════════════════
+     TITLEBAR
+════════════════════════════════════════════════════ -->
+    <div id="titlebar">
+      <!-- Logo -->
+      <div class="tb-logo">
+        <span class="tb-icon pawn">♟</span>
+        <div class="tb-brand">
+          <div class="tb-name">Chess Analytics</div>
+          <div class="tb-sub">Database</div>
+        </div>
+      </div>
+
+      <!-- Nav Tabs -->
+      <div class="tb-nav">
+        <button class="nav-tab active" onclick="window.api?.goExplorer()">
+          ⚔ Query
+        </button>
+        <button class="nav-tab" onclick="window.api?.goAnalytics()">
+          ↗ Statistics
+        </button>
+        <button class="nav-tab" onclick="window.api?.goOpening()">
+          ♞ Explorer
+        </button>
+        <button class="nav-tab" onclick="window.api?.goOlap()">
+          OLAP
+        </button>
+        <button class="nav-tab" onclick="window.api?.goSettings()">
+          ⚙ Settings
+        </button>
+      </div>
+
+      <!-- Centre status / stats -->
+      <div class="tb-status">
+        <div class="tb-conn" id="tb-conn">
+          <div class="tb-dot" id="tb-dot"></div>
+          <span id="tb-conn-text">Not connected</span>
+        </div>
+        <div class="tb-stats" id="tb-stats">
+          <span><span class="tb-stat-val" id="tb-games">—</span> games</span>
+          <div class="tb-divider"></div>
+          <span><span class="tb-stat-val" id="tb-moves">—</span> moves</span>
+          <div class="tb-divider"></div>
+          <span
+            ><span class="tb-stat-val" id="tb-players">—</span> players</span
+          >
+        </div>
+      </div>
+
+      <!-- Window buttons -->
+      <div class="tb-win">
+        <button
+          class="win-btn"
+          onclick="window.api.minimize()"
+          title="Minimize"
+        >
+          <svg viewBox="0 0 10 1" fill="none">
+            <rect width="10" height="1" fill="currentColor" />
+          </svg>
+        </button>
+        <button
+          class="win-btn"
+          onclick="window.api.maximize()"
+          title="Maximize"
+        >
+          <svg viewBox="0 0 10 10" fill="none">
+            <rect
+              x="0.5"
+              y="0.5"
+              width="9"
+              height="9"
+              rx="1"
+              stroke="currentColor"
+            />
+          </svg>
+        </button>
+        <button
+          class="win-btn close"
+          onclick="window.api.close()"
+          title="Close"
+        >
+          <svg viewBox="0 0 10 10" fill="none">
+            <line
+              x1="1"
+              y1="1"
+              x2="9"
+              y2="9"
+              stroke="currentColor"
+              stroke-width="1.2"
+            />
+            <line
+              x1="9"
+              y1="1"
+              x2="1"
+              y2="9"
+              stroke="currentColor"
+              stroke-width="1.2"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════
+     APP
+════════════════════════════════════════════════════ -->
+    <div id="app">
+      <!-- SIDEBAR -->
+      <div id="sidebar">
+        <!-- Connection -->
+        <div id="conn-panel">
+          <div class="conn-row">
+            <span class="conn-label">Host</span>
+            <input
+              class="conn-input"
+              id="cfg-host"
+              placeholder="localhost"
+            />
+          </div>
+          <div class="conn-row">
+            <span class="conn-label">DB</span>
+            <input
+              class="conn-input"
+              id="cfg-db"
+              placeholder="chess"
+            />
+          </div>
+          <div class="conn-row">
+            <span class="conn-label">User</span>
+            <input
+              class="conn-input"
+              id="cfg-user"
+              placeholder="postgres"
+            />
+          </div>
+          <div class="conn-row">
+            <span class="conn-label">Pass</span>
+            <input
+              class="conn-input"
+              id="cfg-pass"
+              type="password"
+              placeholder="••••••"
+            />
+          </div>
+          <button id="connect-btn" onclick="doConnect()">Connect</button>
+        </div>
+
+        <!-- Filters -->
+        <div id="filters-scroll">
+          <!-- § Checkmate Details -->
+          <div class="filter-section">
+            <div class="section-header" onclick="toggleSection(this)">
+              <span class="section-label">Checkmate Details</span>
+              <span class="section-chevron">▾</span>
+            </div>
+            <div class="section-body">
+              <div class="filter-row">
+                <span class="filter-label">Termination</span>
+                <select class="filter-select" id="f-termination">
+                  <option value="any">Any termination</option>
+                  <option value="Checkmate">Checkmate</option>
+                  <option value="Resign">Resignation</option>
+                  <option value="Timeout">Timeout / Time Forfeit</option>
+                  <option value="Draw">Draw</option>
+                  <option value="Stalemate">Stalemate</option>
+                  <option value="Abandoned">Abandoned</option>
+                </select>
+              </div>
+
+              <div class="filter-row">
+                <span class="filter-label">Who gets checkmated</span>
+                <select class="filter-select" id="f-checkmatedColor">
+                  <option value="any">Either side</option>
+                  <option value="white">White is checkmated</option>
+                  <option value="black">Black is checkmated</option>
+                </select>
+              </div>
+
+              <div class="filter-row">
+                <span class="filter-label">Checkmating piece</span>
+                <select class="filter-select" id="f-checkmatePiece">
+                  <option value="any">Any piece</option>
+                  <option value="Q">♛ Queen</option>
+                  <option value="R">♜ Rook</option>
+                  <option value="B">♝ Bishop</option>
+                  <option value="N">♞ Knight</option>
+                  <option value="P">♟ Pawn</option>
+                  <option value="K">♚ King</option>
+                </select>
+              </div>
+
+              <div class="filter-row">
+                <span class="filter-label">Checkmate is a capture?</span>
+                <select class="filter-select" id="f-checkmateCapture">
+                  <option value="any">Either</option>
+                  <option value="yes">Yes — captures on checkmate</option>
+                  <option value="no">No — non-capture / discovered</option>
+                </select>
+              </div>
+
+              <div class="filter-row">
+                <span class="filter-label">Piece captured on checkmate</span>
+                <select class="filter-select" id="f-capturedPiece">
+                  <option value="any">Any / none</option>
+                  <option value="Q">Captures Queen</option>
+                  <option value="R">Captures Rook</option>
+                  <option value="B">Captures Bishop</option>
+                  <option value="N">Captures Knight</option>
+                  <option value="P">Captures Pawn</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- § Checkmate Square -->
+          <div class="filter-section">
+            <div class="section-header" onclick="toggleSection(this)">
+              <span class="section-label">Checkmate Square</span>
+              <span class="section-chevron">▾</span>
+            </div>
+            <div class="section-body">
+              <div class="filter-row">
+                <span class="filter-label">Rank (row)</span>
+                <select class="filter-select" id="f-checkRank">
+                  <option value="any">Any rank</option>
+                  <option value="1">Rank 1 — White's back rank</option>
+                  <option value="2">Rank 2</option>
+                  <option value="3">Rank 3</option>
+                  <option value="4">Rank 4</option>
+                  <option value="5">Rank 5</option>
+                  <option value="6">Rank 6</option>
+                  <option value="7">Rank 7</option>
+                  <option value="8">Rank 8 — Black's back rank</option>
+                </select>
+              </div>
+
+              <div class="filter-row">
+                <span class="filter-label">File (column)</span>
+                <select class="filter-select" id="f-checkFile">
+                  <option value="any">Any file</option>
+                  <option value="a">File a</option>
+                  <option value="b">File b</option>
+                  <option value="c">File c</option>
+                  <option value="d">File d</option>
+                  <option value="e">File e</option>
+                  <option value="f">File f</option>
+                  <option value="g">File g</option>
+                  <option value="h">File h</option>
+                </select>
+              </div>
+
+              <div class="filter-row">
+                <span class="filter-label"
+                  >Exact square (overrides file / rank)</span
+                >
+                <div class="square-grid" id="sq-grid"></div>
+                <div class="sq-label-row">
+                  <span class="sq-label">a</span><span class="sq-label">b</span>
+                  <span class="sq-label">c</span><span class="sq-label">d</span>
+                  <span class="sq-label">e</span><span class="sq-label">f</span>
+                  <span class="sq-label">g</span><span class="sq-label">h</span>
+                </div>
+                <button class="sq-clear-btn" onclick="clearSquare()">
+                  Clear square selection
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- § Game Info -->
+          <div class="filter-section">
+            <div class="section-header" onclick="toggleSection(this)">
+              <span class="section-label">Game Info</span>
+              <span class="section-chevron">▾</span>
+            </div>
+            <div class="section-body">
+              <div class="filter-row">
+                <span class="filter-label">Result</span>
+                <select class="filter-select" id="f-result">
+                  <option value="any">Any result</option>
+                  <option value="1-0">White wins (1-0)</option>
+                  <option value="0-1">Black wins (0-1)</option>
+                  <option value="1/2-1/2">Draw (½-½)</option>
+                </select>
+              </div>
+
+              <div class="filter-row">
+                <span class="filter-label">Time control</span>
+                <select class="filter-select" id="f-timeControl">
+                  <option value="any">Any time control</option>
+                  <option value="bullet">Bullet (≤2 min)</option>
+                  <option value="blitz">Blitz (3–5 min)</option>
+                  <option value="rapid">Rapid (10–15 min)</option>
+                  <option value="classical">Classical (30+ min)</option>
+                </select>
+              </div>
+
+              <div class="filter-row">
+                <span class="filter-label">Opening</span>
+                <select class="filter-select" id="f-openingEco">
+                  <option value="any">Any opening</option>
+                  <optgroup label="A — Flank Openings">
+                    <option value="A0">A0x — Irregular</option>
+                    <option value="A1">A1x — English Opening</option>
+                    <option value="A4">A4x — Queen's Pawn</option>
+                    <option value="A5">A5x — English: Anglo-Indian</option>
+                  </optgroup>
+                  <optgroup label="B — Semi-Open Games">
+                    <option value="B0">B0x — Pirc / Modern</option>
+                    <option value="B1">B1x — Caro-Kann</option>
+                    <option value="B2">B2x — Sicilian</option>
+                    <option value="B5">B5x — Sicilian</option>
+                    <option value="B9">B9x — Sicilian Najdorf</option>
+                  </optgroup>
+                  <optgroup label="C — Open Games">
+                    <option value="C0">C0x — French Defence</option>
+                    <option value="C2">C2x — King's Gambit</option>
+                    <option value="C4">C4x — Italian / Giuoco</option>
+                    <option value="C6">C6x — Ruy López</option>
+                    <option value="C9">C9x — Ruy López</option>
+                  </optgroup>
+                  <optgroup label="D — Closed Games">
+                    <option value="D0">D0x — Queen's Gambit</option>
+                    <option value="D1">D1x — Slav Defence</option>
+                    <option value="D3">D3x — Queen's Gambit Declined</option>
+                    <option value="D7">D7x — Grünfeld Defence</option>
+                  </optgroup>
+                  <optgroup label="E — Indian Defences">
+                    <option value="E0">E0x — Catalan / Nimzo</option>
+                    <option value="E1">E1x — Queen's Indian</option>
+                    <option value="E6">E6x — King's Indian</option>
+                    <option value="E9">E9x — King's Indian</option>
+                  </optgroup>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <!-- § ELO & Moves -->
+          <div class="filter-section">
+            <div class="section-header" onclick="toggleSection(this)">
+              <span class="section-label">ELO & Move Count</span>
+              <span class="section-chevron">▾</span>
+            </div>
+            <div class="section-body">
+              <div class="filter-row">
+                <span class="filter-label">ELO range (either player)</span>
+                <div class="filter-input-row">
+                  <input
+                    class="filter-input"
+                    id="f-minElo"
+                    type="text"
+                    inputmode="numeric"
+                    placeholder="Min (e.g. 1000)"
+                  />
+                  <input
+                    class="filter-input"
+                    id="f-maxElo"
+                    type="text"
+                    inputmode="numeric"
+                    placeholder="Max (e.g. 2500)"
+                  />
+                </div>
+              </div>
+
+              <div class="filter-row">
+                <span class="filter-label">Total moves in game</span>
+                <div class="filter-input-row">
+                  <input
+                    class="filter-input"
+                    id="f-minMoves"
+                    type="text"
+                    inputmode="numeric"
+                    placeholder="Min moves"
+                  />
+                  <input
+                    class="filter-input"
+                    id="f-maxMoves"
+                    type="text"
+                    inputmode="numeric"
+                    placeholder="Max moves"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- /filters-scroll -->
+
+        <!-- Run -->
+        <div id="run-section">
+          <button id="run-btn" onclick="runQuery()" disabled>
+            <span class="btn-icon">⚔</span>
+            <span class="btn-text">Run Query</span>
+          </button>
+          <button id="reset-btn" onclick="resetFilters()">
+            ↺ Reset all filters
+          </button>
+        </div>
+      </div>
+      <!-- /sidebar -->
+
+      <!-- MAIN CONTENT -->
+      <div id="main">
+        <!-- Results header -->
+        <div id="results-header">
+          <span class="results-title">Query Results</span>
+          <div class="results-meta">
+            <span class="meta-pill" id="pill-count">No query run</span>
+            <span class="meta-pill" id="pill-time" style="display: none"></span>
+            <label
+              style="
+                font-size: 10px;
+                color: var(--text3);
+                font-family: &quot;JetBrains Mono&quot;, monospace;
+                display: flex;
+                align-items: center;
+                gap: 5px;
+              "
+            >
+              Limit
+              <select
+                id="f-limit"
+                class="filter-select"
+                style="width: 72px; padding: 3px 24px 3px 7px; font-size: 10px"
+              >
+                <option value="100">100</option>
+                <option value="250">250</option>
+                <option value="500" selected>500</option>
+                <option value="1000">1000</option>
+                <option value="2000">2000</option>
+              </select>
+            </label>
+            <button id="export-btn" onclick="exportCSV()" style="display: none">
+              ↓ Export CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- SQL bar -->
+        <div id="sql-bar">
+          <span class="sql-label">SQL</span>
+          <div id="sql-text"></div>
+        </div>
+
+        <!-- Summary cards -->
+        <div id="summary-bar">
+          <div class="sum-card">
+            <div class="sum-val" id="sum-total">—</div>
+            <div class="sum-key">Total Matches</div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-val" id="sum-avgelo">—</div>
+            <div class="sum-key">Avg ELO</div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-val" id="sum-avgmoves">—</div>
+            <div class="sum-key">Avg Moves</div>
+          </div>
+          <div class="sum-card">
+            <div class="sum-val" id="sum-toppiece">—</div>
+            <div class="sum-key">Top Piece</div>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div id="empty-state">
+          <div class="empty-board" id="deco-board"></div>
+          <div class="empty-title">Select Filters & Run</div>
+          <div class="empty-sub">
+            Configure your query in the left panel, then click Run Query
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div id="table-wrap">
+          <table id="results-table">
+            <thead id="table-head"></thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+
+        <!-- Loading overlay -->
+        <div id="loading-overlay">
+          <div class="loading-inner">
+            <div class="chess-spinner">♞</div>
+            <div class="loading-text">Querying Database…</div>
+          </div>
+        </div>
+      </div>
+      <!-- /main -->
+    </div>
+    <!-- /app -->
+
+    <!-- Error toast -->
+    <div id="error-toast"></div>
+
+    <script>
+      // ── State ──────────────────────────────────────────────────────────────────
+      let currentData = [];
+      let selectedSquare = null;
+      let sortCol = null;
+      let sortDir = 1;
+
+      // ── Init ───────────────────────────────────────────────────────────────────
+      buildDecoBoard();
+      buildSquareGrid();
+
+      function buildDecoBoard() {
+        const el = document.getElementById("deco-board");
+        for (let r = 7; r >= 0; r--)
+          for (let f = 0; f < 8; f++) {
+            const d = document.createElement("div");
+            d.className = (r + f) % 2 === 0 ? "eb-dark" : "eb-light";
+            el.appendChild(d);
+          }
+      }
+
+      function buildSquareGrid() {
+        const grid = document.getElementById("sq-grid");
+        const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
+        for (let rank = 8; rank >= 1; rank--) {
+          for (let fi = 0; fi < 8; fi++) {
+            const sq = files[fi] + rank;
+            const isLight = (fi + rank) % 2 !== 0;
+            const cell = document.createElement("div");
+            cell.className = "sq-cell " + (isLight ? "light" : "dark");
+            cell.dataset.sq = sq;
+            cell.title = sq;
+            cell.textContent = sq;
+            cell.onclick = () => selectSquare(sq, cell);
+            grid.appendChild(cell);
+          }
+        }
+      }
+
+      function selectSquare(sq, cell) {
+        document
+          .querySelectorAll(".sq-cell")
+          .forEach((c) => c.classList.remove("selected"));
+        if (selectedSquare === sq) {
+          selectedSquare = null;
+        } else {
+          selectedSquare = sq;
+          cell.classList.add("selected");
+          document.getElementById("f-checkFile").value = sq[0];
+          document.getElementById("f-checkRank").value = sq[1];
+        }
+      }
+
+      function clearSquare() {
+        selectedSquare = null;
+        document
+          .querySelectorAll(".sq-cell")
+          .forEach((c) => c.classList.remove("selected"));
+        document.getElementById("f-checkFile").value = "any";
+        document.getElementById("f-checkRank").value = "any";
+      }
+
+      function toggleSection(header) {
+        header.classList.toggle("collapsed");
+        header.nextElementSibling.classList.toggle("hidden");
+      }
+
+      // ── Connection ─────────────────────────────────────────────────────────────
+      let isConnected = false;
+
+      async function doConnect() {
+        if (isConnected) {
+          await doDisconnect();
+          return;
+        }
+
+        const btn = document.getElementById("connect-btn");
+        const dot = document.getElementById("tb-dot");
+        const conn = document.getElementById("tb-conn");
+        const txt = document.getElementById("tb-conn-text");
+
+        btn.textContent = "⟳ Connecting…";
+        btn.disabled = true;
+        dot.className = "tb-dot";
+        conn.className = "tb-conn";
+        txt.textContent = "Connecting…";
+
+        const res = await window.api.connect({
+          host: document.getElementById("cfg-host").value,
+          database: document.getElementById("cfg-db").value,
+          user: document.getElementById("cfg-user").value,
+          password: document.getElementById("cfg-pass").value,
+        });
+
+        btn.disabled = false;
+
+        if (res.success) {
+          isConnected = true;
+          btn.textContent = "Disconnect";
+          btn.style.background = "linear-gradient(135deg, #0a1a10, #0d2518)";
+          btn.style.borderColor = "rgba(78,201,138,0.5)";
+          btn.style.color = "var(--green)";
+          dot.className = "tb-dot connected";
+          conn.className = "tb-conn connected";
+          txt.textContent = "Connected";
+          document.getElementById("run-btn").disabled = false;
+          loadStats();
+        } else {
+          isConnected = false;
+          btn.textContent = "Connect";
+          btn.style.background = "";
+          btn.style.borderColor = "";
+          btn.style.color = "";
+          dot.className = "tb-dot error";
+          conn.className = "tb-conn error";
+          txt.textContent = "Connection failed";
+          showError(res.error);
+        }
+      }
+
+      async function doDisconnect() {
+        const btn = document.getElementById("connect-btn");
+        const dot = document.getElementById("tb-dot");
+        const conn = document.getElementById("tb-conn");
+        const txt = document.getElementById("tb-conn-text");
+
+        btn.disabled = true;
+        btn.textContent = "⟳ Disconnecting…";
+
+        if (window.api?.disconnect) {
+          await window.api.disconnect();
+        }
+
+        isConnected = false;
+        btn.disabled = false;
+        btn.textContent = "Connect";
+        btn.style.background = "";
+        btn.style.borderColor = "";
+        btn.style.color = "";
+        dot.className = "tb-dot";
+        conn.className = "tb-conn";
+        txt.textContent = "Not connected";
+        document.getElementById("run-btn").disabled = true;
+        document.getElementById("tb-stats").classList.remove("visible");
+      }
+
+      async function loadStats() {
+        const res = await window.api.stats();
+        if (res.error) return;
+        document.getElementById("tb-stats").classList.add("visible");
+        document.getElementById("tb-games").textContent = fmtK(res.games);
+        document.getElementById("tb-moves").textContent = fmtK(res.moves);
+        document.getElementById("tb-players").textContent = fmtK(res.players);
+      }
+
+      // ── Query ──────────────────────────────────────────────────────────────────
+      async function runQuery() {
+        const filters = {
+          termination: document.getElementById("f-termination").value,
+          result: document.getElementById("f-result").value,
+          checkmatePiece: document.getElementById("f-checkmatePiece").value,
+          checkmatedColor: document.getElementById("f-checkmatedColor").value,
+          checksquare: selectedSquare || "any",
+          checkFile: selectedSquare
+            ? "any"
+            : document.getElementById("f-checkFile").value,
+          checkRank: selectedSquare
+            ? "any"
+            : document.getElementById("f-checkRank").value,
+          checkmateCapture: document.getElementById("f-checkmateCapture").value,
+          capturedPiece: document.getElementById("f-capturedPiece").value,
+          timeControl: document.getElementById("f-timeControl").value,
+          openingEco: document.getElementById("f-openingEco").value,
+          minElo: document.getElementById("f-minElo").value,
+          maxElo: document.getElementById("f-maxElo").value,
+          minMoves: document.getElementById("f-minMoves").value,
+          maxMoves: document.getElementById("f-maxMoves").value,
+          limit: parseInt(document.getElementById("f-limit").value) || 500,
+        };
+
+        showLoading(true);
+        const runBtn = document.getElementById("run-btn");
+        runBtn.classList.add("loading");
+        runBtn.querySelector(".btn-text").textContent = "Running…";
+
+        const res = await window.api.query(filters);
+
+        showLoading(false);
+        runBtn.classList.remove("loading");
+        runBtn.querySelector(".btn-text").textContent = "Run Query";
+
+        if (res.error) {
+          showError(res.error);
+          return;
+        }
+
+        currentData = res.rows;
+        renderTable(res.rows);
+        renderSQL(res.sql);
+        renderSummary(res.rows, res.count, res.total, res.elapsed);
+      }
+
+      function resetFilters() {
+        document
+          .querySelectorAll(".filter-select")
+          .forEach((s) => (s.value = "any"));
+        document
+          .querySelectorAll(".filter-input")
+          .forEach((i) => (i.value = ""));
+        clearSquare();
+      }
+
+      // ── Render Table ───────────────────────────────────────────────────────────
+      const PIECE_ICONS = { Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟", K: "♚" };
+
+      function renderTable(rows) {
+        const wrap = document.getElementById("table-wrap");
+        const empty = document.getElementById("empty-state");
+        const thead = document.getElementById("table-head");
+        const tbody = document.getElementById("table-body");
+
+        if (!rows || rows.length === 0) {
+          wrap.classList.remove("visible");
+          empty.style.display = "flex";
+          empty.querySelector(".empty-title").textContent = "No results found";
+          empty.querySelector(".empty-sub").textContent =
+            "Try adjusting your filters";
+          return;
+        }
+
+        empty.style.display = "none";
+        wrap.classList.add("visible");
+
+        const hasCheckCols = "checkmate_piece" in rows[0];
+
+        const cols = hasCheckCols
+          ? [
+              "lichess_id",
+              "result",
+              "checkmate_piece",
+              "checkmate_by",
+              "checkmate_move",
+              "checkmate_square",
+              "piece_from",
+              "was_capture",
+              "white_elo",
+              "black_elo",
+              "num_moves",
+              "opening_eco",
+              "time_control",
+            ]
+          : [
+              "lichess_id",
+              "result",
+              "termination",
+              "white_elo",
+              "black_elo",
+              "num_moves",
+              "opening_eco",
+              "opening_name",
+              "time_control",
+            ];
+
+        const labels = {
+          lichess_id: "Game",
+          result: "Result",
+          checkmate_piece: "Piece",
+          checkmate_by: "By",
+          checkmate_move: "Move (SAN)",
+          checkmate_square: "On Sq.",
+          piece_from: "From",
+          was_capture: "Capture?",
+          white_elo: "White ELO",
+          black_elo: "Black ELO",
+          num_moves: "Moves",
+          opening_eco: "Opening",
+          opening_name: "Opening Name",
+          time_control: "Time",
+          termination: "End",
+        };
+
+        thead.innerHTML =
+          "<tr>" +
+          cols
+            .map(
+              (c) =>
+                `<th onclick="sortBy('${c}')" class="${sortCol === c ? "sorted" : ""}">
+      ${labels[c] || c} <span class="sort-arrow">${sortCol === c ? (sortDir > 0 ? "▲" : "▼") : "⇅"}</span>
+    </th>`,
+            )
+            .join("") +
+          "</tr>";
+
+        tbody.innerHTML = rows
+          .map(
+            (row) =>
+              "<tr>" +
+              cols.map((c) => `<td>${renderCell(c, row)}</td>`).join("") +
+              "</tr>",
+          )
+          .join("");
+      }
+
+      function renderCell(col, row) {
+        const v = row[col];
+        if (v === null || v === undefined)
+          return '<span style="color:var(--text3)">—</span>';
+        switch (col) {
+          case "lichess_id":
+            return `<div class="td-id"><a href="#" onclick="openGame('${v}');return false;">${v}</a></div>`;
+          case "result":
+            if (v === "1-0")
+              return `<span class="result-badge result-white">♔ White</span>`;
+            if (v === "0-1")
+              return `<span class="result-badge result-black">♚ Black</span>`;
+            if (v === "1/2" || v === "1/2-1/2")
+              return `<span class="result-badge result-draw">½ Draw</span>`;
+            return v;
+          case "termination": {
+            const t = (v || "").toLowerCase();
+            if (t.includes("normal") || t.includes("checkmate"))
+              return `<span class="term-badge term-checkmate">Checkmate/Normal</span>`;
+            if (t.includes("time") || t.includes("forfeit"))
+              return `<span class="term-badge term-timeout">Timeout</span>`;
+            if (t.includes("resign"))
+              return `<span class="term-badge term-resign">Resign</span>`;
+            if (t.includes("draw") || t.includes("stalemate"))
+              return `<span class="term-badge term-draw">${v}</span>`;
+            return `<span class="term-badge term-other">${v}</span>`;
+          }
+          case "checkmate_piece":
+            return `<span class="piece-badge">${PIECE_ICONS[v] || v} ${v}</span>`;
+          case "checkmate_by":
+            return v === "w"
+              ? `<span style="color:#f0d9b5">White</span>`
+              : `<span style="color:#b58863">Black</span>`;
+          case "checkmate_move":
+            return `<span class="san-move">${v}</span>`;
+          case "checkmate_square":
+          case "piece_from":
+            return `<span class="sq-badge">${v}</span>`;
+          case "was_capture":
+            return v
+              ? `<span style="color:var(--red)">✕ Yes</span>`
+              : `<span style="color:var(--text3)">No</span>`;
+          case "white_elo":
+          case "black_elo": {
+            const n = parseInt(v);
+            const cls =
+              n >= 2000 ? "elo-high" : n < 1200 ? "elo-low" : "elo-cell";
+            return `<span class="${cls}">${n}</span>`;
+          }
+          case "num_moves":
+            return `<span style="color:var(--text)">${v}</span>`;
+          case "opening_eco":
+            if (row.opening_name) {
+              return `<div class="opening-cell"><span class="eco-code">${v}</span>${(row.opening_name || "").substring(0, 26)}</div>`;
+            }
+            return `<span class="eco-code">${v}</span>`;
+          case "opening_name":
+            return `<div class="opening-cell" title="${v}">${(v || "").substring(0, 30)}</div>`;
+          case "time_control":
+            return `<span class="tc-pill">${v}</span>`;
+          default:
+            return String(v).substring(0, 40);
+        }
+      }
+
+      function openGame(id) {
+        window.api.openUrl("https://lichess.org/" + id);
+      }
+
+      // ── Sort ───────────────────────────────────────────────────────────────────
+      function sortBy(col) {
+        if (sortCol === col) sortDir *= -1;
+        else {
+          sortCol = col;
+          sortDir = 1;
+        }
+        const sorted = [...currentData].sort((a, b) => {
+          const av = a[col],
+            bv = b[col];
+          if (av == null) return 1;
+          if (bv == null) return -1;
+          if (typeof av === "number") return (av - bv) * sortDir;
+          return String(av).localeCompare(String(bv)) * sortDir;
+        });
+        renderTable(sorted);
+      }
+
+      // ── SQL ────────────────────────────────────────────────────────────────────
+      function renderSQL(sql) {
+        const bar = document.getElementById("sql-bar");
+        const txt = document.getElementById("sql-text");
+        bar.classList.add("visible");
+        txt.innerHTML = sql
+          .replace(
+            /\b(SELECT|FROM|WHERE|JOIN|ON|AND|OR|ORDER BY|LIMIT|IN|LIKE|TRUE|FALSE|NOT|COUNT|DISTINCT|AS|LEFT|INNER|GROUP BY|HAVING|CASE|WHEN|THEN|ELSE|END|EXISTS|COALESCE|NULLS LAST)\b/g,
+            '<span class="kw">$1</span>',
+          )
+          .replace(
+            /\b(games|moves|players|g|m|mc|mv|rx)\b/g,
+            '<span class="tbl">$1</span>',
+          )
+          .replace(/'[^']*'/g, '<span class="val">$&</span>');
+      }
+
+      // ── Summary ────────────────────────────────────────────────────────────────
+      function renderSummary(rows, count, total, elapsed) {
+        const pill = document.getElementById("pill-count");
+        const timePill = document.getElementById("pill-time");
+        const expBtn = document.getElementById("export-btn");
+        const sumBar = document.getElementById("summary-bar");
+
+        const shown = `${count} of ${fmt(total)} matched games`;
+        pill.textContent = shown;
+        pill.className = "meta-pill" + (count > 0 ? " highlight" : "");
+        timePill.textContent = `${elapsed}ms`;
+        timePill.style.display = "";
+        expBtn.style.display = count > 0 ? "" : "none";
+
+        if (count === 0) {
+          sumBar.classList.remove("visible");
+          return;
+        }
+        sumBar.classList.add("visible");
+
+        document.getElementById("sum-total").textContent = fmt(total);
+
+        const elos = rows.flatMap((r) =>
+          [r.white_elo, r.black_elo].filter(Boolean),
+        );
+        const avgElo = elos.length
+          ? Math.round(elos.reduce((a, b) => a + b, 0) / elos.length)
+          : null;
+        document.getElementById("sum-avgelo").textContent = avgElo || "—";
+
+        const moveCounts = rows.map((r) => r.num_moves).filter(Boolean);
+        const avgMoves = moveCounts.length
+          ? Math.round(
+              moveCounts.reduce((a, b) => a + Number(b), 0) / moveCounts.length,
+            )
+          : null;
+        document.getElementById("sum-avgmoves").textContent = avgMoves || "—";
+
+        const pieceCounts = {};
+        rows.forEach((r) => {
+          if (r.checkmate_piece)
+            pieceCounts[r.checkmate_piece] =
+              (pieceCounts[r.checkmate_piece] || 0) + 1;
+        });
+        const top = Object.entries(pieceCounts).sort((a, b) => b[1] - a[1])[0];
+        document.getElementById("sum-toppiece").textContent = top
+          ? PIECE_ICONS[top[0]] || top[0]
+          : "—";
+      }
+
+      // ── Export ─────────────────────────────────────────────────────────────────
+      function exportCSV() {
+        if (!currentData.length) return;
+        const cols = Object.keys(currentData[0]);
+        const csv = [
+          cols.join(","),
+          ...currentData.map((row) =>
+            cols
+              .map((c) => {
+                const v = row[c];
+                if (v == null) return "";
+                const s = String(v);
+                return s.includes(",") || s.includes('"')
+                  ? `"${s.replace(/"/g, '""')}"`
+                  : s;
+              })
+              .join(","),
+          ),
+        ].join("\n");
+        const blob = new Blob([csv], { type: "text/csv" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "chess-query.csv";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      // ── Utils ──────────────────────────────────────────────────────────────────
+      function fmt(n) {
+        return Number(n).toLocaleString();
+      }
+      function fmtK(n) {
+        if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
+        if (n >= 1_000) return (n / 1_000).toFixed(0) + "K";
+        return String(n);
+      }
+      function showLoading(v) {
+        document.getElementById("loading-overlay").className = v
+          ? "visible"
+          : "";
+      }
+
+      let errorTimeout;
+      function showError(msg) {
+        const el = document.getElementById("error-toast");
+        el.textContent = "⚠ " + msg;
+        el.classList.add("show");
+        clearTimeout(errorTimeout);
+        errorTimeout = setTimeout(() => el.classList.remove("show"), 5000);
+      }
+
+      async function initConnectionState() {
+        if (!window.api?.getConnectionState) return;
+
+        try {
+          const state = await window.api.getConnectionState();
+          const cfg = state?.config || {};
+          document.getElementById("cfg-host").value = cfg.host || "";
+          document.getElementById("cfg-db").value = cfg.database || "";
+          document.getElementById("cfg-user").value = cfg.user || "";
+          document.getElementById("cfg-pass").value = cfg.password || "";
+
+          if (state.connected) {
+            isConnected = true;
+            const dot = document.getElementById("tb-dot");
+            const conn = document.getElementById("tb-conn");
+            const txt = document.getElementById("tb-conn-text");
+            const btn = document.getElementById("connect-btn");
+            dot.className = "tb-dot connected";
+            conn.className = "tb-conn connected";
+            txt.textContent = "Connected";
+            btn.textContent = "Disconnect";
+            btn.style.background = "linear-gradient(135deg, #0a1a10, #0d2518)";
+            btn.style.borderColor = "rgba(78,201,138,0.5)";
+            btn.style.color = "var(--green)";
+            document.getElementById("run-btn").disabled = false;
+            await loadStats();
+          }
+        } catch (err) {
+          showError(err.message || "Failed to load connection state");
+        }
+      }
+
+      window.addEventListener("DOMContentLoaded", () => {
+        initConnectionState();
+      });
+    </script>
+  </body>
+</html>

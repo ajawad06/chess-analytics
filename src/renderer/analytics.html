@@ -1,0 +1,2045 @@
+﻿<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chess Analytics — Statistics</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=JetBrains+Mono:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap");
+
+      :root {
+        --bg: #12141a;
+        --bg2: #1a1d27;
+        --bg3: #202431;
+        --bg4: #252a3a;
+        --bg5: #2c3245;
+        --border: #2a3048;
+        --border2: #36406a;
+        --gold: #f0b94a;
+        --gold2: #ffd97a;
+        --gold-dim: #7a5c1e;
+        --gold-bg: rgba(240, 185, 74, 0.08);
+        --text: #eef0f8;
+        --text2: #a8b0cc;
+        --text3: #5a6380;
+        --red: #f05a5a;
+        --green: #4ec98a;
+        --blue: #5ba4e5;
+        --purple: #a07de8;
+        --orange: #e5913a;
+        --teal: #3accc0;
+        --glow: rgba(240, 185, 74, 0.22);
+        --radius: 6px;
+        --radius2: 10px;
+        --radius3: 14px;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+      }
+
+      ::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+      }
+      ::-webkit-scrollbar-track {
+        background: var(--bg2);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border2);
+        border-radius: 3px;
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: var(--gold-dim);
+      }
+
+      /* â”€â”€ Titlebar â”€â”€ */
+      #titlebar {
+        display: flex;
+        align-items: center;
+        height: 44px;
+        background: var(--bg2);
+        border-bottom: 1px solid var(--border);
+        padding: 0 0 0 20px;
+        -webkit-app-region: drag;
+        flex-shrink: 0;
+        gap: 0;
+      }
+      .tb-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-right: 20px;
+      }
+      .tb-icon {
+        font-size: 19px;
+        width: 20px;
+        text-align: center;
+        filter: drop-shadow(0 0 6px var(--gold));
+      }
+      .tb-icon.bishop {
+        color: var(--blue);
+        filter: drop-shadow(0 0 6px rgba(91, 164, 229, 0.4));
+      }
+      .tb-brand {
+        display: flex;
+        flex-direction: column;
+      }
+      .tb-name {
+        font-family: "Cinzel", serif;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        color: var(--gold);
+        text-transform: uppercase;
+        line-height: 1;
+      }
+      .tb-sub {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9px;
+        color: var(--text3);
+        letter-spacing: 0.08em;
+        margin-top: 2px;
+      }
+
+      /* Nav tabs */
+      .tb-nav {
+        display: flex;
+        align-items: stretch;
+        height: 44px;
+        gap: 0;
+        -webkit-app-region: no-drag;
+      }
+      .nav-tab {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 18px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        color: var(--text3);
+        border: none;
+        background: none;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: all 0.15s;
+        text-transform: uppercase;
+        -webkit-app-region: no-drag;
+      }
+      .nav-tab:hover {
+        color: var(--text2);
+        background: rgba(255, 255, 255, 0.02);
+      }
+      .nav-tab.active {
+        color: var(--gold);
+        border-bottom-color: var(--gold);
+        background: var(--gold-bg);
+      }
+
+      /* Status */
+      .tb-conn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 12px;
+        border-radius: 20px;
+        border: 1px solid var(--border2);
+        background: var(--bg3);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        color: var(--text3);
+        -webkit-app-region: no-drag;
+      }
+      .tb-conn.connected {
+        border-color: rgba(61, 170, 111, 0.35);
+        color: var(--green);
+      }
+      .tb-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--text3);
+      }
+      .tb-dot.connected {
+        background: var(--green);
+        box-shadow: 0 0 5px var(--green);
+      }
+
+      /* Refresh btn */
+      #refresh-btn {
+        height: 44px;
+        padding: 0 18px;
+        border: none;
+        background: transparent;
+        color: var(--text3);
+        cursor: pointer;
+        font-size: 14px;
+        -webkit-app-region: no-drag;
+        transition: all 0.15s;
+      }
+      #refresh-btn:hover {
+        color: var(--gold);
+      }
+      #refresh-btn.spinning {
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .tb-win {
+        display: flex;
+        align-items: center;
+        height: 44px;
+        -webkit-app-region: no-drag;
+      }
+      .win-btn {
+        width: 46px;
+        height: 44px;
+        border: none;
+        background: transparent;
+        color: var(--text3);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        transition:
+          background 0.12s,
+          color 0.12s;
+      }
+      .win-btn:hover {
+        background: var(--bg4);
+        color: var(--text2);
+      }
+      .win-btn.close:hover {
+        background: #c0392b;
+        color: #fff;
+      }
+      .win-btn svg {
+        width: 10px;
+        height: 10px;
+      }
+
+      /* â”€â”€ App Layout â”€â”€ */
+      #app {
+        flex: 1;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+
+      /* â”€â”€ Toolbar bar â”€â”€ */
+      #toolbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 22px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg2);
+        flex-shrink: 0;
+        flex-wrap: wrap;
+      }
+      .tool-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .tool-label {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9.5px;
+        color: var(--text3);
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+      .tool-select {
+        background: var(--bg4);
+        border: 1px solid var(--border2);
+        border-radius: var(--radius);
+        color: var(--text);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        padding: 4px 28px 4px 9px;
+        outline: none;
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='5'%3E%3Cpath d='M0 0l4.5 5 4.5-5z' fill='%23454d65'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+        transition: border-color 0.15s;
+      }
+      .tool-select:focus {
+        border-color: var(--gold-dim);
+      }
+      .tool-select option {
+        background: var(--bg3);
+      }
+
+      .tool-divider {
+        width: 1px;
+        height: 20px;
+        background: var(--border);
+      }
+
+      .meta-info {
+        margin-left: auto;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9.5px;
+        color: var(--text3);
+      }
+      .meta-info span {
+        color: var(--gold);
+      }
+
+      /* â”€â”€ KPI Strip â”€â”€ */
+      #kpi-strip {
+        display: flex;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg2);
+        flex-shrink: 0;
+      }
+      .kpi-card {
+        flex: 1;
+        padding: 12px 20px;
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        position: relative;
+        overflow: hidden;
+      }
+      .kpi-card:last-child {
+        border-right: none;
+      }
+      .kpi-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--accent, var(--gold));
+        opacity: 0.5;
+      }
+      .kpi-val {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 20px;
+        color: var(--gold);
+        font-weight: 500;
+        line-height: 1;
+      }
+      .kpi-key {
+        font-size: 9px;
+        color: var(--text3);
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+      }
+      .kpi-sub {
+        font-size: 10px;
+        color: var(--text2);
+        margin-top: 1px;
+      }
+      .kpi-icon {
+        position: absolute;
+        right: 14px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 26px;
+        opacity: 0.07;
+      }
+
+      /* â”€â”€ Charts Grid â”€â”€ */
+      #charts-scroll {
+        flex: 1;
+        overflow-y: auto;
+        padding: 18px 22px;
+      }
+
+      .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 14px;
+      }
+
+      /* chart card */
+      .chart-card {
+        background: var(--bg2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius2);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        position: relative;
+      }
+      .chart-card:hover {
+        border-color: var(--border2);
+      }
+      .chart-card.col-6 {
+        grid-column: span 6;
+      }
+      .chart-card.col-4 {
+        grid-column: span 4;
+      }
+      .chart-card.col-8 {
+        grid-column: span 8;
+      }
+      .chart-card.col-12 {
+        grid-column: span 12;
+      }
+
+      .card-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 16px 10px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg3);
+      }
+      .card-icon {
+        font-size: 14px;
+      }
+      .card-title {
+        font-family: "Cinzel", serif;
+        font-size: 9.5px;
+        letter-spacing: 0.14em;
+        color: var(--gold2);
+        text-transform: uppercase;
+        flex: 1;
+      }
+      .card-badge {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9px;
+        color: var(--text3);
+        background: var(--bg4);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 2px 8px;
+      }
+
+      .card-body {
+        flex: 1;
+        padding: 14px 16px;
+        position: relative;
+      }
+      .card-body canvas {
+        display: block;
+      }
+
+      /* Leaderboard inside card */
+      .leaderboard {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .lb-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 6px 10px;
+        border-radius: var(--radius);
+        background: var(--bg3);
+        border: 1px solid var(--border);
+        transition: background 0.12s;
+      }
+      .lb-row:hover {
+        background: var(--bg4);
+      }
+      .lb-rank {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        color: var(--text3);
+        width: 16px;
+        text-align: right;
+        flex-shrink: 0;
+      }
+      .lb-name {
+        flex: 1;
+        font-size: 11.5px;
+        color: var(--text);
+      }
+      .lb-bar-wrap {
+        width: 80px;
+        height: 4px;
+        background: var(--bg5);
+        border-radius: 2px;
+      }
+      .lb-bar {
+        height: 100%;
+        border-radius: 2px;
+        background: var(--gold);
+      }
+      .lb-val {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10.5px;
+        color: var(--gold);
+        width: 40px;
+        text-align: right;
+      }
+
+      /* Heatmap */
+      .heatmap-wrap {
+        overflow: auto;
+      }
+      .heatmap-grid {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        gap: 3px;
+        padding: 4px;
+      }
+      .hm-cell {
+        aspect-ratio: 1;
+        border-radius: 3px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 8.5px;
+        font-weight: 500;
+        cursor: default;
+        transition: transform 0.1s;
+        position: relative;
+      }
+      .hm-cell:hover {
+        transform: scale(1.15);
+        z-index: 2;
+      }
+      .hm-label-row {
+        display: flex;
+        justify-content: space-around;
+        padding: 2px 4px 0;
+      }
+      .hm-label {
+        font-size: 8px;
+        color: var(--text3);
+        font-family: "JetBrains Mono", monospace;
+      }
+      .hm-rank-col {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-around;
+        padding: 4px 4px 4px 0;
+      }
+      .hm-rank-label {
+        font-size: 8px;
+        color: var(--text3);
+        font-family: "JetBrains Mono", monospace;
+        height: calc(100% / 8);
+        display: flex;
+        align-items: center;
+      }
+      .hm-legend {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-top: 8px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9px;
+        color: var(--text3);
+      }
+      .hm-legend-bar {
+        height: 6px;
+        width: 100px;
+        border-radius: 3px;
+        background: linear-gradient(to right, var(--bg5), var(--gold));
+        flex: 1;
+      }
+
+      /* Tooltip */
+      [data-tip] {
+        position: relative;
+      }
+      [data-tip]:hover::after {
+        content: attr(data-tip);
+        position: absolute;
+        bottom: 120%;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--bg3);
+        border: 1px solid var(--border2);
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9.5px;
+        color: var(--text2);
+        white-space: nowrap;
+        z-index: 10;
+        pointer-events: none;
+      }
+
+      /* Empty / loading */
+      .chart-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 160px;
+        gap: 8px;
+        color: var(--text3);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+      }
+      .chart-placeholder .ph-icon {
+        font-size: 28px;
+        opacity: 0.2;
+      }
+
+      /* Loading overlay */
+      #loading-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(7, 8, 13, 0.82);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+      }
+      #loading-overlay.visible {
+        display: flex;
+      }
+      .loading-inner {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 14px;
+      }
+      .chess-spinner {
+        font-size: 34px;
+        animation: spin 0.9s linear infinite;
+      }
+      .loading-text {
+        font-family: "Cinzel", serif;
+        font-size: 12px;
+        color: var(--gold);
+        letter-spacing: 0.12em;
+      }
+
+      /* Error toast */
+      #error-toast {
+        position: fixed;
+        bottom: 22px;
+        right: 22px;
+        background: #140808;
+        border: 1px solid var(--red);
+        border-radius: var(--radius2);
+        padding: 11px 16px;
+        color: #e88;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        z-index: 200;
+        max-width: 380px;
+        transform: translateY(80px);
+        opacity: 0;
+        transition: all 0.28s;
+        pointer-events: none;
+      }
+      #error-toast.show {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    </style>
+    <link rel="stylesheet" href="./theme.css" />
+    <script defer src="./settings.js"></script>
+  </head>
+  <body>
+    <!-- TITLEBAR -->
+    <div id="titlebar">
+      <div class="tb-logo">
+        <span class="tb-icon bishop">♝</span>
+        <div class="tb-brand">
+          <div class="tb-name">Chess Analytics</div>
+          <div class="tb-sub">Statistics</div>
+        </div>
+      </div>
+
+      <!-- Nav -->
+      <div class="tb-nav">
+        <button class="nav-tab" onclick="window.api?.goExplorer()">
+          ⚔ Query
+        </button>
+        <button class="nav-tab active">↗ Statistics</button>
+        <button class="nav-tab" onclick="window.api?.goOpening()">
+          ♞ Explorer
+        </button>
+        <button class="nav-tab" onclick="window.api?.goOlap()">
+          OLAP
+        </button>
+        <button class="nav-tab" onclick="window.api?.goSettings()">
+          ⚙ Settings
+        </button>
+      </div>
+
+      <!-- Centre status -->
+      <div class="tb-status" style="display:flex;align-items:center;gap:16px;flex:1;-webkit-app-region:drag;padding-left:16px;">
+        <div class="tb-conn" id="tb-conn" style="margin-right:0;">
+          <div class="tb-dot" id="tb-dot"></div>
+          <span id="tb-conn-text">Not connected</span>
+        </div>
+        <button id="refresh-btn" title="Refresh data" onclick="loadAllStats(true)" style="-webkit-app-region:no-drag;">
+          ⟳
+        </button>
+      </div>
+
+      <!-- Window controls -->
+      <div class="tb-win">
+        <button
+          class="win-btn"
+          onclick="window.api?.minimize()"
+          title="Minimize"
+        >
+          <svg viewBox="0 0 10 1" fill="none">
+            <rect width="10" height="1" fill="currentColor" />
+          </svg>
+        </button>
+        <button
+          class="win-btn"
+          onclick="window.api?.maximize()"
+          title="Maximize"
+        >
+          <svg viewBox="0 0 10 10" fill="none">
+            <rect
+              x="0.5"
+              y="0.5"
+              width="9"
+              height="9"
+              rx="1"
+              stroke="currentColor"
+            />
+          </svg>
+        </button>
+        <button
+          class="win-btn close"
+          onclick="window.api?.close()"
+          title="Close"
+        >
+          <svg viewBox="0 0 10 10" fill="none">
+            <line
+              x1="1"
+              y1="1"
+              x2="9"
+              y2="9"
+              stroke="currentColor"
+              stroke-width="1.2"
+            />
+            <line
+              x1="9"
+              y1="1"
+              x2="1"
+              y2="9"
+              stroke="currentColor"
+              stroke-width="1.2"
+            />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- APP -->
+    <div id="app">
+      <!-- Toolbar -->
+      <div id="toolbar">
+        <div class="tool-group">
+          <span class="tool-label">Time Control</span>
+          <select class="tool-select" id="f-tc">
+            <option value="any">All</option>
+            <option value="bullet">Bullet</option>
+            <option value="blitz">Blitz</option>
+            <option value="rapid">Rapid</option>
+            <option value="classical">Classical</option>
+          </select>
+        </div>
+        <div class="tool-group">
+          <span class="tool-label">ELO Range</span>
+          <select class="tool-select" id="f-elo-band">
+            <option value="any">All Ratings</option>
+            <option value="under1200">&lt; 1200</option>
+            <option value="1200-1600">1200-1600</option>
+            <option value="1600-2000">1600-2000</option>
+            <option value="2000plus">2000+</option>
+          </select>
+        </div>
+        <div class="meta-info" id="meta-info"></div>
+      </div>
+
+      <!-- KPI Strip -->
+      <div id="kpi-strip">
+        <div class="kpi-card" style="--accent: var(--gold)">
+          <div class="kpi-val" id="kpi-games">—</div>
+          <div class="kpi-key">Total Games</div>
+          <div class="kpi-sub" id="kpi-games-sub"></div>
+        </div>
+        <div class="kpi-card" style="--accent: var(--red)">
+          <div class="kpi-val" id="kpi-mates">—</div>
+          <div class="kpi-key">Checkmates</div>
+          <div class="kpi-sub" id="kpi-mates-sub"></div>
+        </div>
+        <div class="kpi-card" style="--accent: var(--blue)">
+          <div class="kpi-val" id="kpi-avgelo">—</div>
+          <div class="kpi-key">Average ELO</div>
+          <div class="kpi-sub" id="kpi-avgelo-sub"></div>
+        </div>
+        <div class="kpi-card" style="--accent: var(--green)">
+          <div class="kpi-val" id="kpi-avgmoves">—</div>
+          <div class="kpi-key">Avg Move Count</div>
+          <div class="kpi-sub" id="kpi-avgmoves-sub"></div>
+        </div>
+        <div class="kpi-card" style="--accent: var(--purple)">
+          <div class="kpi-val" id="kpi-toppiece">—</div>
+          <div class="kpi-key">Top Checkmate Piece</div>
+          <div class="kpi-sub" id="kpi-toppiece-sub"></div>
+        </div>
+        <div class="kpi-card" style="--accent: var(--teal)">
+          <div class="kpi-val" id="kpi-openings">—</div>
+          <div class="kpi-key">Unique Openings</div>
+          <div class="kpi-sub" id="kpi-openings-sub"></div>
+        </div>
+      </div>
+
+      <!-- Charts Scroll Area -->
+      <div id="charts-scroll">
+        <div class="charts-grid">
+          <!-- Row 1: Pieces bar (8) + Pie result (4) -->
+          <div class="chart-card col-8">
+            <div class="card-header">
+              <span class="card-title">Checkmates by Piece</span>
+              <span class="card-badge" id="badge-pieces">—</span>
+            </div>
+            <div class="card-body" style="height: 260px">
+              <canvas id="chart-pieces"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card col-4">
+            <div class="card-header">
+              <span class="card-title">Game Result Distribution</span>
+              <span class="card-badge" id="badge-results">—</span>
+            </div>
+            <div class="card-body" style="height: 260px">
+              <canvas id="chart-results"></canvas>
+            </div>
+          </div>
+
+          <!-- Row 2: Top Openings bar (12) -->
+          <div class="chart-card col-12">
+            <div class="card-header">
+              <span class="card-title">Most Common Openings</span>
+              <span class="card-badge" id="badge-openings">—</span>
+            </div>
+            <div class="card-body" style="height: 240px">
+              <canvas id="chart-openings"></canvas>
+            </div>
+          </div>
+
+          <!-- Row 3: ECO families (4) + Termination (4) + Capture checkmates (4) -->
+          <div class="chart-card col-4">
+            <div class="card-header">
+              <span class="card-title">Opening Family</span>
+              <span class="card-badge" id="badge-eco">—</span>
+            </div>
+            <div class="card-body" style="height: 220px">
+              <canvas id="chart-eco"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card col-4">
+            <div class="card-header">
+              <span class="card-title">Game Termination Types</span>
+              <span class="card-badge" id="badge-term">—</span>
+            </div>
+            <div class="card-body" style="height: 220px">
+              <canvas id="chart-term"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card col-4">
+            <div class="card-header">
+              <span class="card-title">Checkmate: Capture vs Non-Capture</span>
+              <span class="card-badge" id="badge-capture">—</span>
+            </div>
+            <div class="card-body" style="height: 220px">
+              <canvas id="chart-capture"></canvas>
+            </div>
+          </div>
+
+          <!-- Row 4: Move count distribution (8) + Who gets mated (4) -->
+          <div class="chart-card col-8">
+            <div class="card-header">
+              <span class="card-title">Game Length Distribution</span>
+              <span class="card-badge" id="badge-moves">—</span>
+            </div>
+            <div class="card-body" style="height: 220px">
+              <canvas id="chart-moves"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card col-4">
+            <div class="card-header">
+              <span class="card-title">Who Gets Checkmated</span>
+              <span class="card-badge" id="badge-who">—</span>
+            </div>
+            <div class="card-body" style="height: 220px">
+              <canvas id="chart-who"></canvas>
+            </div>
+          </div>
+
+          <!-- Row 5: Heatmap (8) + ELO dist (4) -->
+          <div class="chart-card col-8">
+            <div class="card-header">
+              <span class="card-title">Checkmate Square Heatmap</span>
+              <span class="card-badge" id="badge-heatmap">—</span>
+            </div>
+            <div class="card-body">
+              <div style="display: flex; gap: 4px">
+                <div class="hm-rank-col" id="hm-ranks">
+                  <div class="hm-rank-label">8</div>
+                  <div class="hm-rank-label">7</div>
+                  <div class="hm-rank-label">6</div>
+                  <div class="hm-rank-label">5</div>
+                  <div class="hm-rank-label">4</div>
+                  <div class="hm-rank-label">3</div>
+                  <div class="hm-rank-label">2</div>
+                  <div class="hm-rank-label">1</div>
+                </div>
+                <div style="flex: 1">
+                  <div class="heatmap-grid" id="heatmap-grid"></div>
+                  <div class="hm-label-row">
+                    <span class="hm-label">a</span
+                    ><span class="hm-label">b</span>
+                    <span class="hm-label">c</span
+                    ><span class="hm-label">d</span>
+                    <span class="hm-label">e</span
+                    ><span class="hm-label">f</span>
+                    <span class="hm-label">g</span
+                    ><span class="hm-label">h</span>
+                  </div>
+                </div>
+              </div>
+              <div class="hm-legend">
+                <span>Fewer</span>
+                <div class="hm-legend-bar"></div>
+                <span>More</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="chart-card col-4">
+            <div class="card-header">
+              <span class="card-title">ELO Distribution</span>
+              <span class="card-badge" id="badge-elo">—</span>
+            </div>
+            <div class="card-body" style="height: 240px">
+              <canvas id="chart-elo"></canvas>
+            </div>
+          </div>
+
+          <!-- Row 6: Top ECO leaderboard (4) + Time control breakdown (4) + Piece by color (4) -->
+          <div class="chart-card col-4">
+            <div class="card-header">
+              <span class="card-title">Top ECO Codes</span>
+            </div>
+            <div class="card-body">
+              <div class="leaderboard" id="lb-eco"></div>
+            </div>
+          </div>
+
+          <div class="chart-card col-4">
+            <div class="card-header">
+              <span class="card-title">Games by Time Control</span>
+            </div>
+            <div class="card-body" style="height: 220px">
+              <canvas id="chart-tc"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card col-4">
+            <div class="card-header">
+              <span class="card-title">Checkmate Piece by Side</span>
+              <span class="card-badge" id="badge-bycolor">—</span>
+            </div>
+            <div class="card-body" style="height: 220px">
+              <canvas id="chart-bycolor"></canvas>
+            </div>
+          </div>
+        </div>
+        <!-- /charts-grid -->
+      </div>
+      <!-- /charts-scroll -->
+    </div>
+    <!-- /app -->
+
+    <div id="loading-overlay">
+      <div class="loading-inner">
+        <div class="chess-spinner">♞</div>
+        <div class="loading-text">Crunching Numbers…</div>
+      </div>
+    </div>
+
+    <div id="error-toast"></div>
+
+    <script>
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // Chart.js defaults — dark theme
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      Chart.defaults.color = "#a8b0cc";
+      Chart.defaults.borderColor = "#2a3048";
+      Chart.defaults.font.family = "'JetBrains Mono', monospace";
+      Chart.defaults.font.size = 10;
+      Chart.defaults.plugins.legend.labels.boxWidth = 10;
+      Chart.defaults.plugins.legend.labels.padding = 12;
+      Chart.defaults.plugins.tooltip.backgroundColor = "#1a1d27";
+      Chart.defaults.plugins.tooltip.borderColor = "#36406a";
+      Chart.defaults.plugins.tooltip.borderWidth = 1;
+      Chart.defaults.plugins.tooltip.titleColor = "#f0b94a";
+      Chart.defaults.plugins.tooltip.bodyColor = "#eef0f8";
+      Chart.defaults.plugins.tooltip.padding = 10;
+
+      const COLORS = {
+        gold: "#f0b94a",
+        gold2: "#ffd97a",
+        goldDim: "#7a5c1e",
+        red: "#f05a5a",
+        green: "#4ec98a",
+        blue: "#5ba4e5",
+        purple: "#a07de8",
+        orange: "#e5913a",
+        teal: "#3accc0",
+        pink: "#e57ba4",
+        lime: "#a4d65e",
+      };
+
+      const PIECE_NAMES = {
+        Q: "Queen",
+        R: "Rook",
+        B: "Bishop",
+        N: "Knight",
+        P: "Pawn",
+        K: "King",
+      };
+      const PIECE_ICONS = { Q: "♛", R: "♜", B: "♝", N: "♞", P: "♟", K: "♚" };
+      const PIECE_COLORS = [
+        COLORS.gold,
+        COLORS.blue,
+        COLORS.teal,
+        COLORS.purple,
+        COLORS.green,
+        COLORS.red,
+      ];
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // Chart registry — destroy before recreate
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      const charts = {};
+      const queryCache = new Map();
+      let bypassQueryCache = false;
+      let statsLoadInFlight = false;
+
+      function getChart(id) {
+        return charts[id];
+      }
+
+      function setChart(id, buildChart) {
+        if (charts[id]) {
+          charts[id].destroy();
+          delete charts[id];
+        }
+        charts[id] = buildChart();
+        return charts[id];
+      }
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // DB query helper — calls through window.api (Electron) or uses mock data
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      function makeQueryCacheKey(sql, params = []) {
+        return JSON.stringify([sql.replace(/\s+/g, " ").trim(), params]);
+      }
+
+      async function dbQuery(sql, params = []) {
+        const key = makeQueryCacheKey(sql, params);
+        if (!bypassQueryCache && queryCache.has(key)) {
+          return queryCache.get(key);
+        }
+
+        if (window.api && window.api.rawQuery) {
+          const res = await window.api.rawQuery(sql, params, {
+            bypassCache: bypassQueryCache,
+          });
+          if (!res.error) {
+            queryCache.set(key, res);
+          }
+          return res;
+        }
+        // Demo mode — return mock data
+        return { rows: [], error: null };
+      }
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // Filter helpers
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      function buildTimeFilter(alias = "g") {
+        const tc = document.getElementById("f-tc").value;
+        if (tc === "any") return "";
+        const safe = `CASE WHEN ${alias}.time_control ~ '^[0-9]+\\+[0-9]+$'
+                THEN SPLIT_PART(${alias}.time_control,'+',1)::int + SPLIT_PART(${alias}.time_control,'+',2)::int * 40
+                ELSE NULL END`;
+        if (tc === "bullet") return `AND (${safe}) < 180`;
+        if (tc === "blitz") return `AND (${safe}) BETWEEN 180 AND 599`;
+        if (tc === "rapid") return `AND (${safe}) BETWEEN 600 AND 1799`;
+        if (tc === "classical") return `AND (${safe}) >= 1800`;
+        return "";
+      }
+
+      function buildEloFilter(alias = "g") {
+        const band = document.getElementById("f-elo-band").value;
+        if (band === "any") return "";
+        if (band === "under1200")
+          return `AND GREATEST(${alias}.white_elo, ${alias}.black_elo) < 1200`;
+        if (band === "1200-1600")
+          return `AND LEAST(${alias}.white_elo, ${alias}.black_elo) >= 1200 AND GREATEST(${alias}.white_elo, ${alias}.black_elo) < 1600`;
+        if (band === "1600-2000")
+          return `AND LEAST(${alias}.white_elo, ${alias}.black_elo) >= 1600 AND GREATEST(${alias}.white_elo, ${alias}.black_elo) < 2000`;
+        if (band === "2000plus")
+          return `AND LEAST(${alias}.white_elo, ${alias}.black_elo) >= 2000`;
+        return "";
+      }
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // Load all stats
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      async function loadAllStats(forceRefresh = false) {
+        if (statsLoadInFlight) return;
+        statsLoadInFlight = true;
+        bypassQueryCache = !!forceRefresh;
+
+        showLoading(true);
+        document.getElementById("refresh-btn").classList.add("spinning");
+
+        const tf = buildTimeFilter();
+        const ef = buildEloFilter();
+
+        try {
+          await Promise.all([
+            loadKPIs(tf, ef),
+            loadPieceChart(tf, ef),
+            loadResultChart(tf, ef),
+            loadOpeningsChart(tf, ef),
+            loadEcoChart(tf, ef),
+            loadTerminationChart(tf, ef),
+            loadCaptureChart(tf, ef),
+            loadMovesChart(tf, ef),
+            loadWhoMated(tf, ef),
+            loadHeatmap(tf, ef),
+            loadEloChart(tf, ef),
+            loadEcoLeaderboard(tf, ef),
+            loadTcChart(tf, ef),
+            loadPieceByColor(tf, ef),
+          ]);
+          document.getElementById("meta-info").innerHTML =
+            `Last updated <span>${new Date().toLocaleTimeString()}</span>`;
+        } catch (e) {
+          showError(e.message);
+        }
+
+        statsLoadInFlight = false;
+        bypassQueryCache = false;
+        showLoading(false);
+        document.getElementById("refresh-btn").classList.remove("spinning");
+      }
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // KPI Strip
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      async function loadKPIs(tf, ef) {
+        const sql = `
+    SELECT
+      COUNT(*)                                               AS total_games,
+      COUNT(*) FILTER (WHERE EXISTS (
+        SELECT 1 FROM moves m WHERE m.game_id = g.id AND m.is_checkmate = TRUE
+      ))                                                     AS checkmate_games,
+      ROUND(AVG((g.white_elo + g.black_elo)/2.0))           AS avg_elo,
+      ROUND(AVG(COALESCE(g.num_moves,
+        (SELECT COUNT(*) FROM moves mc WHERE mc.game_id = g.id)
+      )))                                                    AS avg_moves,
+      COUNT(DISTINCT g.opening_eco)                         AS unique_openings
+    FROM games g
+    WHERE 1=1 ${tf} ${ef}
+  `;
+        const res = await dbQuery(sql);
+        if (res.error || !res.rows.length) return;
+        const r = res.rows[0];
+        el("kpi-games").textContent = fmt(r.total_games);
+        el("kpi-mates").textContent = fmt(r.checkmate_games);
+        el("kpi-avgelo").textContent = r.avg_elo || "—";
+        el("kpi-avgmoves").textContent = r.avg_moves || "—";
+        el("kpi-openings").textContent = fmt(r.unique_openings);
+
+        const pct =
+          r.total_games > 0
+            ? ((r.checkmate_games / r.total_games) * 100).toFixed(1)
+            : 0;
+        el("kpi-mates-sub").textContent = `${pct}% of games`;
+
+        // Top piece
+        const ps = await dbQuery(`
+    SELECT m.piece, COUNT(*) AS n
+    FROM moves m JOIN games g ON g.id = m.game_id
+    WHERE m.is_checkmate = TRUE ${tf} ${ef}
+    GROUP BY m.piece ORDER BY n DESC LIMIT 1
+  `);
+        if (!ps.error && ps.rows.length) {
+          const p = ps.rows[0].piece;
+          el("kpi-toppiece").textContent =
+            (PIECE_ICONS[p] || p) + " " + (PIECE_NAMES[p] || p);
+          el("kpi-toppiece-sub").textContent =
+            fmt(ps.rows[0].n) + " checkmates";
+        }
+      }
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // Checkmates by piece (bar)
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      async function loadPieceChart(tf, ef) {
+        const res = await dbQuery(`
+    SELECT m.piece, COUNT(*) AS n
+    FROM moves m JOIN games g ON g.id = m.game_id
+    WHERE m.is_checkmate = TRUE ${tf} ${ef}
+    GROUP BY m.piece ORDER BY n DESC
+  `);
+        if (res.error) return;
+
+        const labels = res.rows.map(
+          (r) =>
+            `${PIECE_ICONS[r.piece] || r.piece} ${PIECE_NAMES[r.piece] || r.piece}`,
+        );
+        const data = res.rows.map((r) => parseInt(r.n));
+        const total = data.reduce((a, b) => a + b, 0);
+        el("badge-pieces").textContent = fmt(total);
+
+        setChart(
+          "pieces",
+          () => new Chart(el("chart-pieces"), {
+            type: "bar",
+            data: {
+              labels,
+              datasets: [
+                {
+                  data,
+                  backgroundColor: PIECE_COLORS.slice(0, data.length).map(
+                    (c) => c + "cc",
+                  ),
+                  borderColor: PIECE_COLORS.slice(0, data.length),
+                  borderWidth: 1,
+                  borderRadius: 4,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (ctx) =>
+                      ` ${fmt(ctx.raw)}  (${((ctx.raw / total) * 100).toFixed(1)}%)`,
+                  },
+                },
+              },
+              scales: {
+                x: { grid: { display: false }, ticks: { color: "#a8b0cc" } },
+                y: { grid: { color: "#1a1d27" }, ticks: { color: "#5a6380" } },
+              },
+            },
+          }),
+        );
+      }
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // Game result pie
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      async function loadResultChart(tf, ef) {
+        const res = await dbQuery(`
+    SELECT TRIM(g.result) AS result, COUNT(*) AS n
+    FROM games g WHERE 1=1 ${tf} ${ef}
+    GROUP BY TRIM(g.result) ORDER BY n DESC
+  `);
+        if (res.error) return;
+
+        const labelMap = {
+          "1-0": "♔ White wins",
+          "0-1": "♚ Black wins",
+          "1/2": "½ Draw",
+        };
+        const colorMap = {
+          "1-0": COLORS.gold,
+          "0-1": "#b58863",
+          "1/2": COLORS.blue,
+        };
+
+        const labels = res.rows.map((r) => labelMap[r.result] || r.result);
+        const data = res.rows.map((r) => parseInt(r.n));
+        const bgColors = res.rows.map(
+          (r) => (colorMap[r.result] || COLORS.purple) + "bb",
+        );
+        const total = data.reduce((a, b) => a + b, 0);
+        el("badge-results").textContent = fmt(total);
+
+        setChart(
+          "results",
+          () => new Chart(el("chart-results"), {
+            type: "doughnut",
+            data: {
+              labels,
+              datasets: [
+                {
+                  data,
+                  backgroundColor: bgColors,
+                  borderColor: "#12141a",
+                  borderWidth: 2,
+                  hoverOffset: 6,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              cutout: "62%",
+              plugins: {
+                legend: {
+                  position: "bottom",
+                  labels: { color: "#a8b0cc", boxWidth: 10, padding: 10 },
+                },
+                tooltip: {
+                  callbacks: {
+                    label: (ctx) =>
+                      ` ${fmt(ctx.raw)}  (${((ctx.raw / total) * 100).toFixed(1)}%)`,
+                  },
+                },
+              },
+            },
+          }),
+        );
+      }
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // Top openings (horizontal bar)
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      async function loadOpeningsChart(tf, ef) {
+        const res = await dbQuery(`
+    SELECT g.opening_eco, g.opening_name, COUNT(*) AS n
+    FROM games g WHERE g.opening_name IS NOT NULL ${tf.replace(/^AND /, "")} ${ef.replace(/^AND /, "")}
+    GROUP BY g.opening_eco, g.opening_name ORDER BY n DESC LIMIT 15
+  `);
+        if (res.error) return;
+
+        const labels = res.rows.map(
+          (r) => `${r.opening_eco} ${(r.opening_name || "").substring(0, 30)}`,
+        );
+        const data = res.rows.map((r) => parseInt(r.n));
+        const total = data.reduce((a, b) => a + b, 0);
+        el("badge-openings").textContent = fmt(total);
+
+        setChart(
+          "openings",
+          () => new Chart(el("chart-openings"), {
+            type: "bar",
+            data: {
+              labels,
+              datasets: [
+                {
+                  data,
+                  backgroundColor: `${COLORS.teal}88`,
+                  borderColor: COLORS.teal,
+                  borderWidth: 1,
+                  borderRadius: 3,
+                },
+              ],
+            },
+            options: {
+              indexAxis: "y",
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: { label: (ctx) => ` ${fmt(ctx.raw)} games` },
+                },
+              },
+              scales: {
+                x: { grid: { color: "#1a1d27" }, ticks: { color: "#5a6380" } },
+                y: {
+                  grid: { display: false },
+                  ticks: { color: "#a8b0cc", font: { size: 9 } },
+                },
+              },
+            },
+          }),
+        );
+      }
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // ECO Family (radar / polar)
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      async function loadEcoChart(tf, ef) {
+        const res = await dbQuery(`
+    SELECT LEFT(g.opening_eco, 1) AS family, COUNT(*) AS n
+    FROM games g WHERE g.opening_eco IS NOT NULL ${tf} ${ef}
+    GROUP BY LEFT(g.opening_eco, 1) ORDER BY family
+  `);
+        if (res.error) return;
+
+        const familyNames = {
+          A: "A — Flank",
+          B: "B — Semi-Open",
+          C: "C — Open",
+          D: "D — Closed",
+          E: "E — Indian",
+        };
+        const familyColors = [
+          COLORS.gold,
+          COLORS.red,
+          COLORS.blue,
+          COLORS.green,
+          COLORS.purple,
+        ];
+
+        const labels = res.rows.map((r) => familyNames[r.family] || r.family);
+        const data = res.rows.map((r) => parseInt(r.n));
+        const total = data.reduce((a, b) => a + b, 0);
+        el("badge-eco").textContent = fmt(total);
+
+        setChart(
+          "eco",
+          () => new Chart(el("chart-eco"), {
+            type: "polarArea",
+            data: {
+              labels,
+              datasets: [
+                {
+                  data,
+                  backgroundColor: familyColors
+                    .slice(0, data.length)
+                    .map((c) => c + "88"),
+                  borderColor: familyColors.slice(0, data.length),
+                  borderWidth: 1,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: "bottom",
+                  labels: { color: "#a8b0cc", font: { size: 9 } },
+                },
+                tooltip: { callbacks: { label: (ctx) => ` ${fmt(ctx.raw)}` } },
+              },
+              scales: {
+                r: { grid: { color: "#2a3048" }, ticks: { display: false } },
+              },
+            },
+          }),
+        );
+      }
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // Termination types (doughnut)
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      async function loadTerminationChart(tf, ef) {
+        const res = await dbQuery(`
+    SELECT TRIM(g.termination) AS term, COUNT(*) AS n
+    FROM games g WHERE 1=1 ${tf} ${ef}
+    GROUP BY TRIM(g.termination) ORDER BY n DESC LIMIT 8
+  `);
+        if (res.error) return;
+
+        const data = res.rows.map((r) => parseInt(r.n));
+        const total = data.reduce((a, b) => a + b, 0);
+        const termColors = [
+          COLORS.gold,
+          COLORS.blue,
+          COLORS.red,
+          COLORS.green,
+          COLORS.purple,
+          COLORS.teal,
+          COLORS.orange,
+          COLORS.pink,
+        ];
+        el("badge-term").textContent = fmt(total);
+
+        setChart(
+          "term",
+          () => new Chart(el("chart-term"), {
+            type: "doughnut",
+            data: {
+              labels: res.rows.map((r) => r.term || "Unknown"),
+              datasets: [
+                {
+                  data,
+                  backgroundColor: termColors
+                    .slice(0, data.length)
+                    .map((c) => c + "bb"),
+                  borderColor: "#12141a",
+                  borderWidth: 2,
+                  hoverOffset: 5,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              cutout: "55%",
+              plugins: {
+                legend: {
+                  position: "bottom",
+                  labels: { color: "#a8b0cc", boxWidth: 8, font: { size: 9 } },
+                },
+                tooltip: {
+                  callbacks: {
+                    label: (ctx) =>
+                      ` ${fmt(ctx.raw)}  (${((ctx.raw / total) * 100).toFixed(1)}%)`,
+                  },
+                },
+              },
+            },
+          }),
+        );
+      }
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // Capture vs non-capture checkmates (doughnut)
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      async function loadCaptureChart(tf, ef) {
+        const res = await dbQuery(`
+    SELECT m.is_capture, COUNT(*) AS n
+    FROM moves m JOIN games g ON g.id = m.game_id
+    WHERE m.is_checkmate = TRUE ${tf} ${ef}
+    GROUP BY m.is_capture
+  `);
+        if (res.error) return;
+
+        const rows = res.rows;
+        const capRow = rows.find(
+          (r) =>
+            r.is_capture === true ||
+            r.is_capture === "t" ||
+            r.is_capture === "1",
+        );
+        const nonRow = rows.find(
+          (r) =>
+            r.is_capture === false ||
+            r.is_capture === "f" ||
+            r.is_capture === "0",
+        );
+        const capN = parseInt(capRow?.n || 0);
+        const nonN = parseInt(nonRow?.n || 0);
+        const total = capN + nonN;
+        el("badge-capture").textContent = fmt(total);
+
+        setChart(
+          "capture",
+          () => new Chart(el("chart-capture"), {
+            type: "doughnut",
+            data: {
+              labels: ["✕ Capture", "— Non-capture"],
+              datasets: [
+                {
+                  data: [capN, nonN],
+                  backgroundColor: [`${COLORS.red}bb`, `${COLORS.blue}bb`],
+                  borderColor: "#12141a",
+                  borderWidth: 2,
+                  hoverOffset: 5,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              cutout: "60%",
+              plugins: {
+                legend: { position: "bottom", labels: { color: "#a8b0cc" } },
+                tooltip: {
+                  callbacks: {
+                    label: (ctx) =>
+                      ` ${fmt(ctx.raw)}  (${total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0}%)`,
+                  },
+                },
+              },
+            },
+          }),
+        );
+      }
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // Game length distribution (area line / bar bucketed)
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      async function loadMovesChart(tf, ef) {
+        const res = await dbQuery(`
+    SELECT
+      FLOOR(COALESCE(g.num_moves,
+        (SELECT COUNT(*) FROM moves mc WHERE mc.game_id = g.id)
+      ) / 10.0) * 10 AS bucket,
+      COUNT(*) AS n
+    FROM games g WHERE 1=1 ${tf} ${ef}
+    GROUP BY bucket ORDER BY bucket
+    LIMIT 30
+  `);
+        if (res.error) return;
+
+        const labels = res.rows.map((r) => `${r.bucket}-${parseInt(r.bucket, 10) + 9}`);
+        const data = res.rows.map((r) => parseInt(r.n));
+        const total = data.reduce((a, b) => a + b, 0);
+        const labelStep = labels.length > 12 ? Math.ceil(labels.length / 12) : 1;
+        el("badge-moves").textContent = fmt(total);
+
+        setChart(
+          "moves",
+          () => new Chart(el("chart-moves"), {
+            type: "bar",
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: "Games",
+                  data,
+                  backgroundColor: `${COLORS.purple}88`,
+                  borderColor: COLORS.purple,
+                  borderWidth: 1,
+                  borderRadius: 3,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: { label: (ctx) => ` ${fmt(ctx.raw)} games` },
+                },
+              },
+              scales: {
+                x: {
+                  grid: { display: false },
+                  offset: true,
+                  ticks: {
+                    color: "#5a6380",
+                    maxRotation: 0,
+                    minRotation: 0,
+                    autoSkip: false,
+                    font: { size: 10 },
+                    callback: function (value, index) {
+                      if (index % labelStep !== 0) return "";
+                      return this.getLabelForValue(value);
+                    },
+                  },
+                },
+                y: { grid: { color: "#1a1d27" }, ticks: { color: "#5a6380" } },
+              },
+            },
+          }),
+        );
+      }
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // Who gets mated (doughnut)
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      async function loadWhoMated(tf, ef) {
+        const res = await dbQuery(`
+    SELECT m.color AS mating_side, COUNT(*) AS n
+    FROM moves m JOIN games g ON g.id = m.game_id
+    WHERE m.is_checkmate = TRUE ${tf} ${ef}
+    GROUP BY m.color
+  `);
+        if (res.error) return;
+
+        const wRow = res.rows.find((r) => r.mating_side === "w");
+        const bRow = res.rows.find((r) => r.mating_side === "b");
+        const wN = parseInt(wRow?.n || 0); // white mates → black is mated
+        const bN = parseInt(bRow?.n || 0);
+        const total = wN + bN;
+        el("badge-who").textContent = fmt(total);
+
+        setChart(
+          "who",
+          () => new Chart(el("chart-who"), {
+            type: "doughnut",
+            data: {
+              labels: ["♚ Black mated", "♔ White mated"],
+              datasets: [
+                {
+                  data: [wN, bN],
+                  backgroundColor: [`${COLORS.gold}cc`, `#b5886388`],
+                  borderColor: "#12141a",
+                  borderWidth: 2,
+                  hoverOffset: 5,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              cutout: "58%",
+              plugins: {
+                legend: { position: "bottom", labels: { color: "#a8b0cc" } },
+                tooltip: {
+                  callbacks: {
+                    label: (ctx) =>
+                      ` ${fmt(ctx.raw)}  (${total > 0 ? ((ctx.raw / total) * 100).toFixed(1) : 0}%)`,
+                  },
+                },
+              },
+            },
+          }),
+        );
+      }
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // Heatmap — checkmate squares
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      async function loadHeatmap(tf, ef) {
+        const res = await dbQuery(`
+    SELECT m.to_sq AS sq, COUNT(*) AS n
+    FROM moves m JOIN games g ON g.id = m.game_id
+    WHERE m.is_checkmate = TRUE AND m.to_sq IS NOT NULL ${tf} ${ef}
+    GROUP BY m.to_sq
+  `);
+        if (res.error) return;
+
+        const sqMap = {};
+        let maxVal = 0;
+        res.rows.forEach((r) => {
+          sqMap[r.sq] = parseInt(r.n);
+          if (sqMap[r.sq] > maxVal) maxVal = sqMap[r.sq];
+        });
+
+        const total = Object.values(sqMap).reduce((a, b) => a + b, 0);
+        el("badge-heatmap").textContent = fmt(total);
+
+        const grid = el("heatmap-grid");
+        grid.innerHTML = "";
+        const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
+
+        for (let rank = 8; rank >= 1; rank--) {
+          for (let fi = 0; fi < 8; fi++) {
+            const sq = files[fi] + rank;
+            const n = sqMap[sq] || 0;
+            const t = maxVal > 0 ? n / maxVal : 0;
+            const isLight = (fi + rank) % 2 !== 0;
+
+            // interpolate from dark → gold
+            const r = Math.round(lerp(42, 240, t));
+            const g = Math.round(lerp(40, 185, t));
+            const b2 = Math.round(lerp(58, 74, t));
+            const alpha = 0.15 + t * 0.85;
+
+            const cell = document.createElement("div");
+            cell.className = "hm-cell";
+            cell.style.background = `rgba(${r},${g},${b2},${alpha})`;
+            cell.style.color = t > 0.5 ? "#12141a" : "#5a6380";
+            cell.textContent =
+              n > 0 ? (n >= 1000 ? Math.round(n / 1000) + "k" : n) : "";
+            cell.setAttribute("data-tip", `${sq}: ${fmt(n)} checkmates`);
+            grid.appendChild(cell);
+          }
+        }
+      }
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // ELO distribution (line)
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      async function loadEloChart(tf, ef) {
+        const res = await dbQuery(`
+    SELECT
+      FLOOR(g.white_elo / 100.0) * 100 AS bucket,
+      COUNT(*) AS n
+    FROM games g WHERE g.white_elo IS NOT NULL ${tf} ${ef}
+    GROUP BY bucket ORDER BY bucket
+  `);
+        if (res.error) return;
+
+        const labels = res.rows.map((r) => r.bucket);
+        const data = res.rows.map((r) => parseInt(r.n));
+        const total = data.reduce((a, b) => a + b, 0);
+        el("badge-elo").textContent = fmt(total);
+
+        setChart(
+          "elo",
+          () => new Chart(el("chart-elo"), {
+            type: "line",
+            data: {
+              labels,
+              datasets: [
+                {
+                  label: "Players",
+                  data,
+                  borderColor: COLORS.gold,
+                  backgroundColor: `${COLORS.gold}18`,
+                  borderWidth: 1.5,
+                  pointRadius: 0,
+                  fill: true,
+                  tension: 0.4,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: { legend: { display: false } },
+              scales: {
+                x: {
+                  grid: { display: false },
+                  ticks: { color: "#5a6380", maxTicksLimit: 8 },
+                },
+                y: { grid: { color: "#1a1d27" }, ticks: { color: "#5a6380" } },
+              },
+            },
+          }),
+        );
+      }
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // ECO leaderboard
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      async function loadEcoLeaderboard(tf, ef) {
+        const res = await dbQuery(`
+    SELECT g.opening_eco AS eco, COUNT(*) AS n
+    FROM games g WHERE g.opening_eco IS NOT NULL ${tf} ${ef}
+    GROUP BY g.opening_eco ORDER BY n DESC LIMIT 8
+  `);
+        if (res.error) return;
+
+        const max = parseInt(res.rows[0]?.n || 1);
+        const lb = el("lb-eco");
+        lb.innerHTML = "";
+
+        res.rows.forEach((r, i) => {
+          const pct = Math.round((r.n / max) * 100);
+          const row = document.createElement("div");
+          row.className = "lb-row";
+          row.innerHTML = `
+      <span class="lb-rank">${i + 1}</span>
+      <span class="lb-name" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--gold)">${r.eco}</span>
+      <div class="lb-bar-wrap"><div class="lb-bar" style="width:${pct}%"></div></div>
+      <span class="lb-val">${fmt(r.n)}</span>
+    `;
+          lb.appendChild(row);
+        });
+      }
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // Games by time control (bar)
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      async function loadTcChart(tf, ef) {
+        const res = await dbQuery(`
+    SELECT
+      CASE
+        WHEN SPLIT_PART(g.time_control,'+',1)::int + SPLIT_PART(g.time_control,'+',2)::int * 40 < 180 THEN 'Bullet'
+        WHEN SPLIT_PART(g.time_control,'+',1)::int + SPLIT_PART(g.time_control,'+',2)::int * 40 < 600 THEN 'Blitz'
+        WHEN SPLIT_PART(g.time_control,'+',1)::int + SPLIT_PART(g.time_control,'+',2)::int * 40 < 1800 THEN 'Rapid'
+        ELSE 'Classical'
+      END AS tc_cat,
+      COUNT(*) AS n
+    FROM games g
+    WHERE g.time_control ~ '^[0-9]+\\+[0-9]+$' ${tf} ${ef}
+    GROUP BY tc_cat ORDER BY n DESC
+  `);
+        if (res.error) return;
+
+        const tcColors = {
+          Bullet: COLORS.red,
+          Blitz: COLORS.orange,
+          Rapid: COLORS.blue,
+          Classical: COLORS.green,
+        };
+        const labels = res.rows.map((r) => r.tc_cat);
+        const data = res.rows.map((r) => parseInt(r.n));
+
+        setChart(
+          "tc",
+          () => new Chart(el("chart-tc"), {
+            type: "bar",
+            data: {
+              labels,
+              datasets: [
+                {
+                  data,
+                  backgroundColor: labels.map(
+                    (l) => (tcColors[l] || COLORS.purple) + "aa",
+                  ),
+                  borderColor: labels.map((l) => tcColors[l] || COLORS.purple),
+                  borderWidth: 1,
+                  borderRadius: 5,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: { label: (ctx) => ` ${fmt(ctx.raw)} games` },
+                },
+              },
+              scales: {
+                x: { grid: { display: false }, ticks: { color: "#a8b0cc" } },
+                y: { grid: { color: "#1a1d27" }, ticks: { color: "#5a6380" } },
+              },
+            },
+          }),
+        );
+      }
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // Piece by color (grouped bar)
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      async function loadPieceByColor(tf, ef) {
+        const res = await dbQuery(`
+    SELECT m.piece, m.color, COUNT(*) AS n
+    FROM moves m JOIN games g ON g.id = m.game_id
+    WHERE m.is_checkmate = TRUE ${tf} ${ef}
+    GROUP BY m.piece, m.color ORDER BY m.piece, m.color
+  `);
+        if (res.error) return;
+
+        const pieces = ["Q", "R", "B", "N", "P", "K"];
+        const wData = pieces.map((p) =>
+          parseInt(
+            res.rows.find((r) => r.piece === p && r.color === "w")?.n || 0,
+          ),
+        );
+        const bData = pieces.map((p) =>
+          parseInt(
+            res.rows.find((r) => r.piece === p && r.color === "b")?.n || 0,
+          ),
+        );
+        const total = [...wData, ...bData].reduce((a, b) => a + b, 0);
+        el("badge-bycolor").textContent = fmt(total);
+
+        setChart(
+          "bycolor",
+          () => new Chart(el("chart-bycolor"), {
+            type: "bar",
+            data: {
+              labels: pieces.map((p) => `${PIECE_ICONS[p]} ${p}`),
+              datasets: [
+                {
+                  label: "♔ White mates",
+                  data: wData,
+                  backgroundColor: `${COLORS.gold}aa`,
+                  borderColor: COLORS.gold,
+                  borderWidth: 1,
+                  borderRadius: 3,
+                },
+                {
+                  label: "♚ Black mates",
+                  data: bData,
+                  backgroundColor: `#b5886388`,
+                  borderColor: "#b58863",
+                  borderWidth: 1,
+                  borderRadius: 3,
+                },
+              ],
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              plugins: {
+                legend: {
+                  position: "bottom",
+                  labels: { color: "#a8b0cc", boxWidth: 8 },
+                },
+              },
+              scales: {
+                x: { grid: { display: false }, ticks: { color: "#a8b0cc" } },
+                y: { grid: { color: "#1a1d27" }, ticks: { color: "#5a6380" } },
+              },
+            },
+          }),
+        );
+      }
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // Utilities
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      function el(id) {
+        return document.getElementById(id);
+      }
+      function fmt(n) {
+        return Number(n).toLocaleString();
+      }
+      function showLoading(v) {
+        el("loading-overlay").className = v ? "visible" : "";
+      }
+      let errorTimeout;
+      function showError(msg) {
+        const e = el("error-toast");
+        e.textContent = "⚠ " + msg;
+        e.classList.add("show");
+        clearTimeout(errorTimeout);
+        errorTimeout = setTimeout(() => e.classList.remove("show"), 5000);
+      }
+
+      window.addEventListener("beforeunload", () => {
+        Object.values(charts).forEach((chart) => {
+          if (chart) chart.destroy();
+        });
+      });
+
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      // Check connection status from shared state (if Electron)
+      // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+      window.addEventListener("DOMContentLoaded", async () => {
+        if (window.api) {
+          const dot = el("tb-dot");
+          const conn = el("tb-conn");
+          const txt = el("tb-conn-text");
+
+          try {
+            const state = await window.api.getConnectionState();
+            if (state?.connected) {
+              dot.className = "tb-dot connected";
+              conn.className = "tb-conn connected";
+              txt.textContent = "Connected";
+              loadAllStats();
+            } else {
+              txt.textContent = "Not connected";
+            }
+          } catch (e) {
+            txt.textContent = "No connection";
+          }
+        } else {
+          // Browser/demo mode — load with placeholder notice
+          el("tb-conn-text").textContent = "Demo mode";
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1464 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chess Analytics - OLAP</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap");
+
+      :root {
+        --bg: #12141a;
+        --bg2: #1a1d27;
+        --bg3: #202431;
+        --bg4: #252a3a;
+        --bg5: #2c3245;
+        --border: #2a3048;
+        --border2: #36406a;
+        --gold: #f0b94a;
+        --gold2: #ffd97a;
+        --gold-dim: #7a5c1e;
+        --gold-bg: rgba(240, 185, 74, 0.08);
+        --text: #eef0f8;
+        --text2: #a8b0cc;
+        --text3: #5a6380;
+        --green: #4ec98a;
+        --red: #f05a5a;
+        --blue: #5ba4e5;
+        --purple: #a07de8;
+        --teal: #3accc0;
+        --radius: 8px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        display: flex;
+        flex-direction: column;
+      }
+
+      button,
+      select,
+      input {
+        font: inherit;
+      }
+
+      #titlebar {
+        display: flex;
+        align-items: center;
+        height: 44px;
+        background: var(--bg2);
+        border-bottom: 1px solid var(--border);
+        padding-left: 20px;
+        -webkit-app-region: drag;
+        flex-shrink: 0;
+      }
+
+      .tb-logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-right: 20px;
+      }
+
+      .tb-icon {
+        width: 20px;
+        text-align: center;
+        color: var(--teal);
+        font-size: 18px;
+        filter: drop-shadow(0 0 6px rgba(58, 204, 192, 0.35));
+      }
+
+      .tb-brand {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .tb-name {
+        font-family: "Cinzel", serif;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        color: var(--gold);
+        text-transform: uppercase;
+        line-height: 1;
+      }
+
+      .tb-sub {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9px;
+        color: var(--text3);
+        letter-spacing: 0.08em;
+        margin-top: 2px;
+      }
+
+      .tb-nav {
+        display: flex;
+        align-items: stretch;
+        height: 44px;
+        -webkit-app-region: no-drag;
+      }
+
+      .nav-tab {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 0 18px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        color: var(--text3);
+        border: none;
+        background: none;
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        text-transform: uppercase;
+      }
+
+      .nav-tab:hover {
+        color: var(--text2);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .nav-tab.active {
+        color: var(--gold);
+        border-bottom-color: var(--gold);
+        background: var(--gold-bg);
+      }
+
+      .tb-status {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+        padding-left: 16px;
+        -webkit-app-region: drag;
+      }
+
+      .tb-conn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border: 1px solid var(--border2);
+        border-radius: 20px;
+        background: var(--bg3);
+        color: var(--text3);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        -webkit-app-region: no-drag;
+      }
+
+      .tb-conn.connected {
+        color: var(--green);
+        border-color: rgba(78, 201, 138, 0.42);
+      }
+
+      .tb-dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: var(--text3);
+      }
+
+      .tb-dot.connected {
+        background: var(--green);
+        box-shadow: 0 0 5px var(--green);
+      }
+
+      .tb-win {
+        display: flex;
+        height: 44px;
+        -webkit-app-region: no-drag;
+      }
+
+      .win-btn {
+        width: 46px;
+        height: 44px;
+        border: none;
+        background: transparent;
+        color: var(--text3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+      }
+
+      .win-btn:hover {
+        background: var(--bg4);
+        color: var(--text2);
+      }
+
+      .win-btn.close:hover {
+        background: #c0392b;
+        color: #fff;
+      }
+
+      .win-btn svg {
+        width: 10px;
+        height: 10px;
+      }
+
+      #app {
+        flex: 1;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: 330px minmax(520px, 1fr) 300px;
+        overflow: hidden;
+      }
+
+      .sidebar,
+      .inspector {
+        min-height: 0;
+        overflow-y: auto;
+        background: var(--bg2);
+        border-right: 1px solid var(--border);
+      }
+
+      .inspector {
+        border-right: none;
+        border-left: 1px solid var(--border);
+      }
+
+      .side-head {
+        padding: 14px 16px 12px;
+        border-bottom: 1px solid var(--border);
+        background: var(--bg3);
+      }
+
+      .side-title {
+        font-family: "Cinzel", serif;
+        color: var(--gold2);
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        font-size: 11px;
+      }
+
+      .side-sub {
+        margin-top: 5px;
+        color: var(--text3);
+        font-size: 11px;
+        line-height: 1.45;
+      }
+
+      .form {
+        padding: 14px 16px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .group-title {
+        font-family: "Cinzel", serif;
+        color: var(--gold2);
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        font-size: 10px;
+      }
+
+      .field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .field-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+
+      label {
+        color: var(--text3);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9.5px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+
+      select,
+      input {
+        width: 100%;
+        min-width: 0;
+        background: var(--bg4);
+        border: 1px solid var(--border2);
+        border-radius: var(--radius);
+        color: var(--text);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        outline: none;
+        padding: 7px 9px;
+      }
+
+      select:focus,
+      input:focus {
+        border-color: var(--gold-dim);
+      }
+
+      select option {
+        background: var(--bg3);
+      }
+
+      .check-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 9px 10px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg3);
+      }
+
+      .check-row input {
+        width: 16px;
+        height: 16px;
+        accent-color: var(--gold);
+      }
+
+      .btn {
+        border: 1px solid var(--border2);
+        border-radius: var(--radius);
+        background: var(--bg3);
+        color: var(--text2);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        padding: 8px 10px;
+        cursor: pointer;
+      }
+
+      .btn:hover {
+        border-color: var(--gold);
+        color: var(--gold);
+      }
+
+      .btn.primary {
+        background: linear-gradient(135deg, #3a2808, #5a3f12);
+        border-color: #8f6b2a;
+        color: var(--gold2);
+      }
+
+      .btn:disabled {
+        opacity: 0.42;
+        cursor: not-allowed;
+      }
+
+      .scene-shell {
+        min-width: 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        background: radial-gradient(circle at 50% 18%, rgba(58, 204, 192, 0.12), transparent 38%), var(--bg);
+      }
+
+      .toolbar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--border);
+        background: color-mix(in srgb, var(--bg2) 92%, black);
+      }
+
+      .metric-card {
+        min-width: 128px;
+        padding: 8px 10px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg2);
+      }
+
+      .metric-val {
+        color: var(--gold);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 16px;
+      }
+
+      .metric-key {
+        margin-top: 2px;
+        color: var(--text3);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      #scene-wrap {
+        position: relative;
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
+      }
+
+      #cube-canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      .scene-empty {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        text-align: center;
+        padding: 30px;
+        pointer-events: none;
+      }
+
+      .empty-title {
+        color: var(--gold2);
+        font-family: "Cinzel", serif;
+        font-size: 18px;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+      }
+
+      .empty-sub {
+        max-width: 560px;
+        color: var(--text3);
+        font-size: 12px;
+        line-height: 1.55;
+      }
+
+      .axis-legend {
+        position: absolute;
+        left: 14px;
+        bottom: 14px;
+        display: grid;
+        gap: 6px;
+        min-width: 250px;
+        padding: 10px;
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: rgba(18, 20, 26, 0.82);
+        backdrop-filter: blur(10px);
+      }
+
+      .axis-legend:empty {
+        display: none;
+      }
+
+      .axis-row {
+        display: grid;
+        grid-template-columns: 24px 1fr;
+        gap: 8px;
+        align-items: start;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        color: var(--text2);
+      }
+
+      .axis-key {
+        color: var(--gold);
+      }
+
+      #tooltip {
+        position: fixed;
+        z-index: 60;
+        pointer-events: none;
+        display: none;
+        max-width: 290px;
+        padding: 9px 10px;
+        border: 1px solid var(--border2);
+        border-radius: var(--radius);
+        background: rgba(18, 20, 26, 0.94);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+        color: var(--text2);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        line-height: 1.45;
+      }
+
+      .inspector-body {
+        padding: 14px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .detail-box,
+      .sql-box {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        background: var(--bg3);
+        padding: 10px;
+      }
+
+      .detail-title {
+        color: var(--gold2);
+        font-family: "Cinzel", serif;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        font-size: 10px;
+        margin-bottom: 8px;
+      }
+
+      .detail-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 5px 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.04);
+        color: var(--text2);
+        font-size: 11px;
+      }
+
+      .detail-line span:first-child {
+        color: var(--text3);
+      }
+
+      .sql-box {
+        max-height: 170px;
+        overflow: auto;
+        color: var(--text3);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9.5px;
+        line-height: 1.5;
+        white-space: pre-wrap;
+      }
+
+      .table-wrap {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        overflow: hidden;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 10.5px;
+      }
+
+      th,
+      td {
+        padding: 7px 8px;
+        border-bottom: 1px solid var(--border);
+        text-align: left;
+      }
+
+      th {
+        color: var(--gold2);
+        background: var(--bg3);
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9px;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      td {
+        color: var(--text2);
+      }
+
+      tr:hover td {
+        background: rgba(255, 255, 255, 0.025);
+      }
+
+      .loading {
+        position: absolute;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(7, 8, 13, 0.76);
+        z-index: 20;
+      }
+
+      .loading.visible {
+        display: flex;
+      }
+
+      .loading-card {
+        border: 1px solid var(--border2);
+        border-radius: 12px;
+        background: var(--bg2);
+        padding: 16px 18px;
+        color: var(--gold);
+        font-family: "Cinzel", serif;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        font-size: 12px;
+      }
+
+      #error-toast {
+        position: fixed;
+        right: 22px;
+        bottom: 22px;
+        max-width: 380px;
+        transform: translateY(80px);
+        opacity: 0;
+        z-index: 80;
+        padding: 11px 14px;
+        border: 1px solid var(--red);
+        border-radius: 10px;
+        background: #140808;
+        color: #e88;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        transition: all 0.24s;
+      }
+
+      #error-toast.show {
+        transform: translateY(0);
+        opacity: 1;
+      }
+
+      @media (max-width: 1180px) {
+        #app {
+          grid-template-columns: 300px minmax(420px, 1fr);
+        }
+
+        .inspector {
+          display: none;
+        }
+      }
+    </style>
+    <link rel="stylesheet" href="./theme.css" />
+    <script defer src="./settings.js"></script>
+  </head>
+  <body>
+    <div id="titlebar">
+      <div class="tb-logo">
+        <span class="tb-icon">OL</span>
+        <div class="tb-brand">
+          <div class="tb-name">Chess Analytics</div>
+          <div class="tb-sub">OLAP Cube</div>
+        </div>
+      </div>
+
+      <div class="tb-nav">
+        <button class="nav-tab" onclick="window.api?.goExplorer()">Query</button>
+        <button class="nav-tab" onclick="window.api?.goAnalytics()">Statistics</button>
+        <button class="nav-tab" onclick="window.api?.goOpening()">Explorer</button>
+        <button class="nav-tab active">OLAP</button>
+        <button class="nav-tab" onclick="window.api?.goSettings()">Settings</button>
+      </div>
+
+      <div class="tb-status">
+        <div class="tb-conn" id="tb-conn">
+          <span class="tb-dot" id="tb-dot"></span>
+          <span id="tb-conn-text">Not connected</span>
+        </div>
+      </div>
+
+      <div class="tb-win">
+        <button class="win-btn" onclick="window.api?.minimize()" title="Minimize">
+          <svg viewBox="0 0 10 1" fill="none"><rect width="10" height="1" fill="currentColor" /></svg>
+        </button>
+        <button class="win-btn" onclick="window.api?.maximize()" title="Maximize">
+          <svg viewBox="0 0 10 10" fill="none"><rect x="0.5" y="0.5" width="9" height="9" rx="1" stroke="currentColor" /></svg>
+        </button>
+        <button class="win-btn close" onclick="window.api?.close()" title="Close">
+          <svg viewBox="0 0 10 10" fill="none">
+            <line x1="1" y1="1" x2="9" y2="9" stroke="currentColor" stroke-width="1.2" />
+            <line x1="9" y1="1" x2="1" y2="9" stroke="currentColor" stroke-width="1.2" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <main id="app">
+      <aside class="sidebar">
+        <div class="side-head">
+          <div class="side-title">Cube Query</div>
+          <div class="side-sub">Choose three dimensions, one measure, and filters. The result is grouped into a draggable 3D cube.</div>
+        </div>
+
+        <div class="form">
+          <section class="group">
+            <div class="group-title">Dimensions</div>
+            <div class="field">
+              <label for="dim-x">X Axis</label>
+              <select id="dim-x"></select>
+            </div>
+            <div class="field">
+              <label for="dim-y">Y Axis</label>
+              <select id="dim-y"></select>
+            </div>
+            <div class="field">
+              <label for="dim-z">Z Axis</label>
+              <select id="dim-z"></select>
+            </div>
+          </section>
+
+          <section class="group">
+            <div class="group-title">Stats</div>
+            <div class="field">
+              <label for="measure">Measure</label>
+              <select id="measure"></select>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="axis-limit">Buckets</label>
+                <input id="axis-limit" type="number" min="3" max="8" value="6" />
+              </div>
+              <div class="field">
+                <label for="row-limit">Cells</label>
+                <input id="row-limit" type="number" min="40" max="512" value="216" />
+              </div>
+            </div>
+          </section>
+
+          <section class="group">
+            <div class="group-title">Filters</div>
+            <div class="field">
+              <label for="f-time">Time Control</label>
+              <select id="f-time">
+                <option value="any">All</option>
+                <option value="bullet">Bullet</option>
+                <option value="blitz">Blitz</option>
+                <option value="rapid">Rapid</option>
+                <option value="classical">Classical</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="f-result">Result</label>
+              <select id="f-result">
+                <option value="any">All</option>
+                <option value="1-0">White won</option>
+                <option value="0-1">Black won</option>
+                <option value="1/2">Draw</option>
+              </select>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="f-min-elo">Min Elo</label>
+                <input id="f-min-elo" type="number" placeholder="900" />
+              </div>
+              <div class="field">
+                <label for="f-max-elo">Max Elo</label>
+                <input id="f-max-elo" type="number" placeholder="2600" />
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="f-min-moves">Min Moves</label>
+                <input id="f-min-moves" type="number" placeholder="10" />
+              </div>
+              <div class="field">
+                <label for="f-max-moves">Max Moves</label>
+                <input id="f-max-moves" type="number" placeholder="120" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="f-eco">ECO Prefix</label>
+              <input id="f-eco" maxlength="3" placeholder="B" />
+            </div>
+            <label class="check-row" for="f-checkmates">
+              <span>
+                <span style="display:block;color:var(--text2);font-size:12px;">Checkmate games only</span>
+                <span style="display:block;color:var(--text3);font-size:10px;margin-top:2px;">Uses the checkmate move as a slice.</span>
+              </span>
+              <input id="f-checkmates" type="checkbox" />
+            </label>
+          </section>
+
+          <button class="btn primary" id="run-btn">Run OLAP Query</button>
+          <button class="btn" id="reset-btn">Reset</button>
+        </div>
+      </aside>
+
+      <section class="scene-shell">
+        <div class="toolbar">
+          <div class="metric-card">
+            <div class="metric-val" id="m-cells">0</div>
+            <div class="metric-key">Cube Cells</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val" id="m-total">0</div>
+            <div class="metric-key" id="m-total-key">Measure Total</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val" id="m-peak">0</div>
+            <div class="metric-key">Largest Cell</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-val" id="m-time">-</div>
+            <div class="metric-key">Query Time</div>
+          </div>
+        </div>
+
+        <div id="scene-wrap">
+          <canvas id="cube-canvas"></canvas>
+          <div class="scene-empty" id="scene-empty">
+            <div class="empty-title">OLAP Cube Ready</div>
+            <div class="empty-sub">Run a query to build an interactive 3D aggregation cube. Drag to rotate, scroll to zoom, and hover a cubelet for exact slice details.</div>
+          </div>
+          <div class="axis-legend" id="axis-legend"></div>
+          <div class="loading" id="loading"><div class="loading-card">Running OLAP Query</div></div>
+        </div>
+      </section>
+
+      <aside class="inspector">
+        <div class="side-head">
+          <div class="side-title">Inspector</div>
+          <div class="side-sub" id="updated-at">No cube generated yet.</div>
+        </div>
+        <div class="inspector-body">
+          <div class="detail-box" id="selected-detail">
+            <div class="detail-title">Selected Cell</div>
+            <div class="detail-line"><span>X</span><strong>-</strong></div>
+            <div class="detail-line"><span>Y</span><strong>-</strong></div>
+            <div class="detail-line"><span>Z</span><strong>-</strong></div>
+            <div class="detail-line"><span>Value</span><strong>-</strong></div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>X</th>
+                  <th>Y</th>
+                  <th>Z</th>
+                  <th>Value</th>
+                </tr>
+              </thead>
+              <tbody id="result-body">
+                <tr><td colspan="4">No result rows yet.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="detail-title">SQL</div>
+          <div class="sql-box" id="sql-box">Generated SQL will appear here.</div>
+        </div>
+      </aside>
+    </main>
+
+    <div id="tooltip"></div>
+    <div id="error-toast"></div>
+
+    <script>
+      const DIMENSIONS = {
+        result: {
+          label: "Game Result",
+          expr: `CASE
+            WHEN TRIM(g.result) = '1-0' THEN 'White win'
+            WHEN TRIM(g.result) = '0-1' THEN 'Black win'
+            WHEN TRIM(g.result) IN ('1/2', '1/2-1/2') THEN 'Draw'
+            ELSE 'Unknown'
+          END`,
+        },
+        time: {
+          label: "Time Control",
+          expr: `CASE
+            WHEN g.time_control ~ '^[0-9]+\\+[0-9]+$'
+             AND SPLIT_PART(g.time_control,'+',1)::int + SPLIT_PART(g.time_control,'+',2)::int * 40 < 180 THEN 'Bullet'
+            WHEN g.time_control ~ '^[0-9]+\\+[0-9]+$'
+             AND SPLIT_PART(g.time_control,'+',1)::int + SPLIT_PART(g.time_control,'+',2)::int * 40 < 600 THEN 'Blitz'
+            WHEN g.time_control ~ '^[0-9]+\\+[0-9]+$'
+             AND SPLIT_PART(g.time_control,'+',1)::int + SPLIT_PART(g.time_control,'+',2)::int * 40 < 1800 THEN 'Rapid'
+            WHEN g.time_control ~ '^[0-9]+\\+[0-9]+$' THEN 'Classical'
+            ELSE 'Unknown'
+          END`,
+        },
+        elo: {
+          label: "Average Elo Band",
+          expr: `CASE
+            WHEN g.white_elo IS NULL OR g.black_elo IS NULL THEN 'Unknown'
+            WHEN (g.white_elo + g.black_elo) / 2 < 1200 THEN '<1200'
+            WHEN (g.white_elo + g.black_elo) / 2 < 1600 THEN '1200-1599'
+            WHEN (g.white_elo + g.black_elo) / 2 < 2000 THEN '1600-1999'
+            ELSE '2000+'
+          END`,
+        },
+        opening: {
+          label: "Opening Family",
+          expr: `CASE UPPER(SUBSTRING(COALESCE(g.opening_eco, ''), 1, 1))
+            WHEN 'A' THEN 'A Flank'
+            WHEN 'B' THEN 'B Semi-open'
+            WHEN 'C' THEN 'C Open'
+            WHEN 'D' THEN 'D Closed'
+            WHEN 'E' THEN 'E Indian'
+            ELSE 'Unknown'
+          END`,
+        },
+        termination: {
+          label: "Termination",
+          expr: `CASE
+            WHEN LOWER(COALESCE(g.termination, '')) LIKE '%time%' THEN 'Timeout'
+            WHEN LOWER(COALESCE(g.termination, '')) LIKE '%resign%' THEN 'Resign'
+            WHEN LOWER(COALESCE(g.termination, '')) LIKE '%abandon%' THEN 'Abandoned'
+            WHEN LOWER(COALESCE(g.termination, '')) LIKE '%draw%' THEN 'Draw'
+            WHEN TRIM(COALESCE(g.termination, '')) = '' THEN 'Unknown'
+            ELSE TRIM(g.termination)
+          END`,
+        },
+        piece: {
+          label: "Mating Piece",
+          expr: `COALESCE(cm.piece::text, 'None')`,
+        },
+        side: {
+          label: "Mating Side",
+          expr: `CASE cm.color WHEN 'w' THEN 'White mates' WHEN 'b' THEN 'Black mates' ELSE 'No mate' END`,
+        },
+      };
+
+      const MEASURES = {
+        games: {
+          label: "Games",
+          expr: "COUNT(DISTINCT g.id)::float",
+          aggregate: "sum",
+        },
+        checkmates: {
+          label: "Checkmate Games",
+          expr: "COUNT(DISTINCT g.id) FILTER (WHERE cm.id IS NOT NULL)::float",
+          aggregate: "sum",
+        },
+        captures: {
+          label: "Checkmate Captures",
+          expr: "COUNT(cm.id) FILTER (WHERE cm.is_capture = TRUE)::float",
+          aggregate: "sum",
+        },
+        avgElo: {
+          label: "Average Elo",
+          expr: "ROUND(AVG((g.white_elo + g.black_elo) / 2.0))::float",
+          aggregate: "avg",
+        },
+        avgMoves: {
+          label: "Average Moves",
+          expr: "ROUND(AVG(COALESCE(g.num_moves, (SELECT COUNT(*) FROM moves mv WHERE mv.game_id = g.id))))::float",
+          aggregate: "avg",
+        },
+      };
+
+      const COLORS = [0xf0b94a, 0x5ba4e5, 0x4ec98a, 0xa07de8, 0x3accc0, 0xf05a5a, 0xffd97a, 0x8ab4d8];
+      const DEMO_ROWS = [
+        { x: "B Semi-open", y: "Blitz", z: "1600-1999", value: 1240 },
+        { x: "C Open", y: "Blitz", z: "1600-1999", value: 980 },
+        { x: "D Closed", y: "Rapid", z: "2000+", value: 820 },
+        { x: "E Indian", y: "Rapid", z: "1600-1999", value: 610 },
+        { x: "A Flank", y: "Bullet", z: "1200-1599", value: 470 },
+        { x: "B Semi-open", y: "Rapid", z: "2000+", value: 390 },
+      ];
+
+      let renderer = null;
+      let scene = null;
+      let camera = null;
+      let cubeGroup = null;
+      let raycaster = null;
+      let pointer = null;
+      let Three = null;
+      let meshes = [];
+      let currentRows = [];
+      let axes = { x: [], y: [], z: [] };
+      let selectedMesh = null;
+      let dragging = false;
+      let lastPointer = { x: 0, y: 0 };
+      let frameHandle = null;
+      let errorTimer = null;
+
+      function el(id) {
+        return document.getElementById(id);
+      }
+
+      function fmt(n) {
+        const value = Number(n || 0);
+        return value.toLocaleString(undefined, { maximumFractionDigits: 1 });
+      }
+
+      function fillSelect(id, entries, selected) {
+        const select = el(id);
+        select.innerHTML = "";
+        Object.entries(entries).forEach(([key, value]) => {
+          const option = document.createElement("option");
+          option.value = key;
+          option.textContent = value.label;
+          if (key === selected) option.selected = true;
+          select.appendChild(option);
+        });
+      }
+
+      function initControls() {
+        fillSelect("dim-x", DIMENSIONS, "opening");
+        fillSelect("dim-y", DIMENSIONS, "time");
+        fillSelect("dim-z", DIMENSIONS, "elo");
+        fillSelect("measure", MEASURES, "games");
+        el("run-btn").onclick = () => runOlap(false);
+        el("reset-btn").onclick = resetControls;
+      }
+
+      function resetControls() {
+        el("dim-x").value = "opening";
+        el("dim-y").value = "time";
+        el("dim-z").value = "elo";
+        el("measure").value = "games";
+        el("axis-limit").value = "6";
+        el("row-limit").value = "216";
+        el("f-time").value = "any";
+        el("f-result").value = "any";
+        el("f-min-elo").value = "";
+        el("f-max-elo").value = "";
+        el("f-min-moves").value = "";
+        el("f-max-moves").value = "";
+        el("f-eco").value = "";
+        el("f-checkmates").checked = false;
+      }
+
+      function timeControlExpr() {
+        return `CASE WHEN g.time_control ~ '^[0-9]+\\+[0-9]+$'
+          THEN SPLIT_PART(g.time_control,'+',1)::int + SPLIT_PART(g.time_control,'+',2)::int * 40
+          ELSE NULL END`;
+      }
+
+      function addParam(params, value) {
+        params.push(value);
+        return `$${params.length}`;
+      }
+
+      function buildWhere(params) {
+        const clauses = ["1=1"];
+        const time = el("f-time").value;
+        if (time !== "any") {
+          const tc = timeControlExpr();
+          if (time === "bullet") clauses.push(`(${tc}) < 180`);
+          if (time === "blitz") clauses.push(`(${tc}) BETWEEN 180 AND 599`);
+          if (time === "rapid") clauses.push(`(${tc}) BETWEEN 600 AND 1799`);
+          if (time === "classical") clauses.push(`(${tc}) >= 1800`);
+        }
+
+        const result = el("f-result").value;
+        if (result !== "any") clauses.push(`TRIM(g.result) = ${addParam(params, result)}`);
+
+        const eco = el("f-eco").value.trim().toUpperCase();
+        if (eco) clauses.push(`UPPER(g.opening_eco) LIKE ${addParam(params, eco + "%")}`);
+
+        const minElo = el("f-min-elo").value;
+        const maxElo = el("f-max-elo").value;
+        if (minElo !== "") clauses.push(`LEAST(g.white_elo, g.black_elo) >= ${addParam(params, Number(minElo))}`);
+        if (maxElo !== "") clauses.push(`GREATEST(g.white_elo, g.black_elo) <= ${addParam(params, Number(maxElo))}`);
+
+        const moveExpr = "COALESCE(g.num_moves, (SELECT COUNT(*) FROM moves mv WHERE mv.game_id = g.id))";
+        const minMoves = el("f-min-moves").value;
+        const maxMoves = el("f-max-moves").value;
+        if (minMoves !== "") clauses.push(`${moveExpr} >= ${addParam(params, Number(minMoves))}`);
+        if (maxMoves !== "") clauses.push(`${moveExpr} <= ${addParam(params, Number(maxMoves))}`);
+
+        if (el("f-checkmates").checked) clauses.push("cm.id IS NOT NULL");
+
+        return clauses.join("\n    AND ");
+      }
+
+      function buildOlapSql() {
+        const dimX = DIMENSIONS[el("dim-x").value];
+        const dimY = DIMENSIONS[el("dim-y").value];
+        const dimZ = DIMENSIONS[el("dim-z").value];
+        const measure = MEASURES[el("measure").value];
+        const params = [];
+        const where = buildWhere(params);
+        const rowLimit = Math.max(40, Math.min(512, Number(el("row-limit").value) || 216));
+        const limitSlot = addParam(params, rowLimit);
+
+        const sql = `
+WITH cube AS (
+  SELECT
+    ${dimX.expr} AS x_key,
+    ${dimY.expr} AS y_key,
+    ${dimZ.expr} AS z_key,
+    ${measure.expr} AS value
+  FROM games g
+  LEFT JOIN moves cm
+    ON cm.game_id = g.id
+   AND cm.is_checkmate = TRUE
+  WHERE ${where}
+  GROUP BY 1, 2, 3
+)
+SELECT x_key, y_key, z_key, value
+FROM cube
+WHERE value IS NOT NULL AND value > 0
+ORDER BY value DESC
+LIMIT ${limitSlot}`;
+
+        return { sql, params };
+      }
+
+      async function refreshConnectionStatus() {
+        if (!window.api?.getConnectionState) return false;
+        const state = await window.api.getConnectionState();
+        const connected = !!state?.connected;
+        el("tb-dot").className = connected ? "tb-dot connected" : "tb-dot";
+        el("tb-conn").className = connected ? "tb-conn connected" : "tb-conn";
+        el("tb-conn-text").textContent = connected ? "Connected" : "Not connected";
+        return connected;
+      }
+
+      async function runOlap() {
+        const connected = await refreshConnectionStatus();
+        if (!connected) {
+          showError("Connect to PostgreSQL before running OLAP queries.");
+          return;
+        }
+
+        const { sql, params } = buildOlapSql();
+        el("loading").classList.add("visible");
+        el("run-btn").disabled = true;
+
+        try {
+          const started = performance.now();
+          const res = await window.api.rawQuery(sql, params);
+          const elapsed = Math.round(performance.now() - started);
+          if (res.error) {
+            showError(res.error);
+            return;
+          }
+
+          currentRows = (res.rows || []).map((r) => ({
+            x: String(r.x_key ?? "Unknown"),
+            y: String(r.y_key ?? "Unknown"),
+            z: String(r.z_key ?? "Unknown"),
+            value: Number(r.value || 0),
+          }));
+
+          el("sql-box").textContent = sql.replace(/\s+/g, " ").trim();
+          el("updated-at").textContent = `Last updated ${new Date().toLocaleTimeString()}`;
+          renderResultTable(currentRows);
+          await renderCube(currentRows, elapsed);
+        } catch (err) {
+          showError(err.message || "OLAP query failed.");
+        } finally {
+          el("loading").classList.remove("visible");
+          el("run-btn").disabled = false;
+        }
+      }
+
+      function topKeys(rows, key, limit) {
+        const totals = new Map();
+        rows.forEach((row) => totals.set(row[key], (totals.get(row[key]) || 0) + row.value));
+        return [...totals.entries()]
+          .sort((a, b) => b[1] - a[1] || String(a[0]).localeCompare(String(b[0])))
+          .slice(0, limit)
+          .map(([name]) => name);
+      }
+
+      function prepareRows(rows) {
+        const axisLimit = Math.max(3, Math.min(8, Number(el("axis-limit").value) || 6));
+        axes = {
+          x: topKeys(rows, "x", axisLimit),
+          y: topKeys(rows, "y", axisLimit),
+          z: topKeys(rows, "z", axisLimit),
+        };
+        const xSet = new Set(axes.x);
+        const ySet = new Set(axes.y);
+        const zSet = new Set(axes.z);
+        return rows.filter((row) => xSet.has(row.x) && ySet.has(row.y) && zSet.has(row.z));
+      }
+
+      async function ensureThree() {
+        if (Three) return Three;
+
+        if (window.THREE) {
+          Three = window.THREE;
+          return Three;
+        }
+
+        Three = await import("../../node_modules/three/build/three.module.js");
+        return Three;
+      }
+
+      async function initThree() {
+        if (renderer) return true;
+
+        let THREE = null;
+        try {
+          THREE = await ensureThree();
+        } catch (err) {
+          console.error("Failed to load local Three.js module:", err);
+          return false;
+        }
+
+        const canvas = el("cube-canvas");
+        renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(42, 1, 0.1, 1000);
+        camera.position.set(7, 6, 9);
+        camera.lookAt(0, 0, 0);
+
+        const ambient = new THREE.AmbientLight(0xffffff, 0.62);
+        const key = new THREE.DirectionalLight(0xffffff, 0.9);
+        key.position.set(6, 8, 7);
+        scene.add(ambient, key);
+
+        cubeGroup = new THREE.Group();
+        cubeGroup.rotation.set(-0.46, 0.65, 0);
+        scene.add(cubeGroup);
+
+        raycaster = new THREE.Raycaster();
+        pointer = new THREE.Vector2();
+
+        canvas.addEventListener("pointerdown", onPointerDown);
+        window.addEventListener("pointerup", () => (dragging = false));
+        canvas.addEventListener("pointermove", onPointerMove);
+        canvas.addEventListener("wheel", onWheel, { passive: true });
+        canvas.addEventListener("click", onCanvasClick);
+        window.addEventListener("resize", resizeThree);
+        resizeThree();
+        animate();
+        return true;
+      }
+
+      function clearCube() {
+        if (!cubeGroup) return;
+        meshes.forEach((mesh) => {
+          mesh.geometry.dispose();
+          mesh.material.dispose();
+          cubeGroup.remove(mesh);
+        });
+        meshes = [];
+      }
+
+      async function renderCube(rows, elapsed) {
+        const prepared = prepareRows(rows);
+        const measure = MEASURES[el("measure").value];
+        const total =
+          measure.aggregate === "avg" && prepared.length
+            ? prepared.reduce((sum, row) => sum + row.value, 0) / prepared.length
+            : prepared.reduce((sum, row) => sum + row.value, 0);
+        const peak = prepared.reduce((max, row) => Math.max(max, row.value), 0);
+        el("m-cells").textContent = fmt(prepared.length);
+        el("m-total").textContent = fmt(total);
+        el("m-total-key").textContent =
+          measure.aggregate === "avg" ? "Cell Average" : "Measure Total";
+        el("m-peak").textContent = fmt(peak);
+        el("m-time").textContent = `${elapsed}ms`;
+        el("scene-empty").style.display = prepared.length ? "none" : "flex";
+        renderAxisLegend();
+        renderSelected(null);
+
+        if (!prepared.length) {
+          clearCube();
+          return;
+        }
+
+        if (!(await initThree())) {
+          el("scene-empty").style.display = "flex";
+          el("scene-empty").querySelector(".empty-title").textContent = "3D Engine Unavailable";
+          el("scene-empty").querySelector(".empty-sub").textContent = "The local Three.js module could not be loaded, so the OLAP query completed but the cube cannot be drawn.";
+          return;
+        }
+
+        clearCube();
+        const THREE = Three;
+        const spacing = 1.18;
+        const baseSize = 0.62;
+        const maxSpan = Math.max(axes.x.length, axes.y.length, axes.z.length) - 1;
+        const centerOffset = (maxSpan * spacing) / 2;
+
+        prepared.forEach((row) => {
+          const xi = axes.x.indexOf(row.x);
+          const yi = axes.y.indexOf(row.y);
+          const zi = axes.z.indexOf(row.z);
+          if (xi < 0 || yi < 0 || zi < 0) return;
+
+          const t = peak > 0 ? row.value / peak : 0;
+          const geometry = new THREE.BoxGeometry(baseSize, baseSize, baseSize);
+          const material = new THREE.MeshStandardMaterial({
+            color: COLORS[(xi + yi + zi) % COLORS.length],
+            transparent: true,
+            opacity: 0.34 + t * 0.56,
+            metalness: 0.08,
+            roughness: 0.38,
+            emissive: COLORS[(xi + zi) % COLORS.length],
+            emissiveIntensity: 0.06 + t * 0.16,
+          });
+          const mesh = new THREE.Mesh(geometry, material);
+          const scale = 0.42 + Math.sqrt(t) * 0.78;
+          mesh.scale.setScalar(scale);
+          mesh.position.set(xi * spacing - centerOffset, yi * spacing - centerOffset, zi * spacing - centerOffset);
+          mesh.userData = { row, originalScale: scale };
+          cubeGroup.add(mesh);
+          meshes.push(mesh);
+        });
+
+        resizeThree();
+      }
+
+      function renderAxisLegend() {
+        const names = {
+          x: DIMENSIONS[el("dim-x").value].label,
+          y: DIMENSIONS[el("dim-y").value].label,
+          z: DIMENSIONS[el("dim-z").value].label,
+        };
+        el("axis-legend").innerHTML = ["x", "y", "z"]
+          .map((axis) => {
+            const values = axes[axis].slice(0, 6).join(", ") || "-";
+            return `<div class="axis-row"><span class="axis-key">${axis.toUpperCase()}</span><span>${names[axis]}: ${escapeHtml(values)}</span></div>`;
+          })
+          .join("");
+      }
+
+      function renderResultTable(rows) {
+        const body = el("result-body");
+        body.innerHTML = "";
+        if (!rows.length) {
+          const tr = document.createElement("tr");
+          const td = document.createElement("td");
+          td.colSpan = 4;
+          td.textContent = "No matching cube cells.";
+          tr.appendChild(td);
+          body.appendChild(tr);
+          return;
+        }
+
+        rows.slice(0, 14).forEach((row) => {
+          const tr = document.createElement("tr");
+          [row.x, row.y, row.z, fmt(row.value)].forEach((value) => {
+            const td = document.createElement("td");
+            td.textContent = value;
+            tr.appendChild(td);
+          });
+          body.appendChild(tr);
+        });
+      }
+
+      function renderSelected(row) {
+        const box = el("selected-detail");
+        const value = row || { x: "-", y: "-", z: "-", value: "-" };
+        box.innerHTML = `
+          <div class="detail-title">Selected Cell</div>
+          <div class="detail-line"><span>X</span><strong>${escapeHtml(value.x)}</strong></div>
+          <div class="detail-line"><span>Y</span><strong>${escapeHtml(value.y)}</strong></div>
+          <div class="detail-line"><span>Z</span><strong>${escapeHtml(value.z)}</strong></div>
+          <div class="detail-line"><span>Value</span><strong>${row ? fmt(value.value) : "-"}</strong></div>
+        `;
+      }
+
+      function resizeThree() {
+        if (!renderer) return;
+        const rect = el("scene-wrap").getBoundingClientRect();
+        renderer.setSize(rect.width, rect.height, false);
+        camera.aspect = rect.width / Math.max(1, rect.height);
+        camera.updateProjectionMatrix();
+      }
+
+      function animate() {
+        if (renderer) renderer.render(scene, camera);
+        frameHandle = requestAnimationFrame(animate);
+      }
+
+      function setPointer(event) {
+        const rect = el("cube-canvas").getBoundingClientRect();
+        pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+        pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      }
+
+      function pickMesh(event) {
+        if (!raycaster || !meshes.length) return null;
+        setPointer(event);
+        raycaster.setFromCamera(pointer, camera);
+        const hit = raycaster.intersectObjects(meshes, false)[0];
+        return hit ? hit.object : null;
+      }
+
+      function onPointerDown(event) {
+        dragging = true;
+        lastPointer = { x: event.clientX, y: event.clientY };
+      }
+
+      function onPointerMove(event) {
+        if (dragging && cubeGroup) {
+          const dx = event.clientX - lastPointer.x;
+          const dy = event.clientY - lastPointer.y;
+          cubeGroup.rotation.y += dx * 0.008;
+          cubeGroup.rotation.x += dy * 0.008;
+          lastPointer = { x: event.clientX, y: event.clientY };
+          return;
+        }
+
+        const mesh = pickMesh(event);
+        const tip = el("tooltip");
+        if (!mesh) {
+          tip.style.display = "none";
+          return;
+        }
+
+        const row = mesh.userData.row;
+        tip.style.display = "block";
+        tip.style.left = `${event.clientX + 14}px`;
+        tip.style.top = `${event.clientY + 14}px`;
+        tip.innerHTML = `${escapeHtml(row.x)}<br>${escapeHtml(row.y)}<br>${escapeHtml(row.z)}<br><strong style="color:var(--gold)">${fmt(row.value)}</strong>`;
+      }
+
+      function onCanvasClick(event) {
+        const mesh = pickMesh(event);
+        if (!mesh) return;
+        if (selectedMesh) selectedMesh.scale.setScalar(selectedMesh.userData.originalScale);
+        selectedMesh = mesh;
+        selectedMesh.scale.setScalar(mesh.userData.originalScale * 1.2);
+        renderSelected(mesh.userData.row);
+      }
+
+      function onWheel(event) {
+        if (!camera) return;
+        camera.position.multiplyScalar(event.deltaY > 0 ? 1.08 : 0.92);
+        const len = camera.position.length();
+        if (len < 4) camera.position.setLength(4);
+        if (len > 24) camera.position.setLength(24);
+        camera.lookAt(0, 0, 0);
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function showError(msg) {
+        const toast = el("error-toast");
+        toast.textContent = msg;
+        toast.classList.add("show");
+        clearTimeout(errorTimer);
+        errorTimer = setTimeout(() => toast.classList.remove("show"), 5000);
+      }
+
+      window.addEventListener("beforeunload", () => {
+        if (frameHandle) cancelAnimationFrame(frameHandle);
+        clearCube();
+        if (renderer) renderer.dispose();
+      });
+
+      window.addEventListener("DOMContentLoaded", async () => {
+        initControls();
+        await refreshConnectionStatus();
+        await initThree();
+        if (new URLSearchParams(window.location.search).has("demoCube")) {
+          currentRows = DEMO_ROWS;
+          el("scene-empty").querySelector(".empty-title").textContent = "OLAP Cube Ready";
+          el("scene-empty").querySelector(".empty-sub").textContent =
+            "Run a query to build an interactive 3D aggregation cube. Drag to rotate, scroll to zoom, and hover a cubelet for exact slice details.";
+          el("sql-box").textContent = "Demo cube rendered from local Three.js module.";
+          el("updated-at").textContent = "Demo cube";
+          renderResultTable(currentRows);
+          await renderCube(currentRows, 0);
+        }
+      });
+    </script>
+  </body>
+</html>

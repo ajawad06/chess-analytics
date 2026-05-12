@@ -1,0 +1,166 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500..700&family=IBM+Plex+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap");
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  font-family: "Manrope", "Inter", system-ui, sans-serif;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--bg3) 42%, transparent), transparent 38%),
+    linear-gradient(180deg, var(--bg2), var(--bg));
+}
+
+:root[data-theme="classic"] body {
+  background:
+    linear-gradient(135deg, rgba(91, 55, 46, 0.22), transparent 36%),
+    linear-gradient(180deg, #17131a 0%, var(--bg) 100%);
+}
+
+:root[data-theme="midnight"] body {
+  background:
+    linear-gradient(135deg, rgba(117, 128, 72, 0.12), transparent 34%),
+    linear-gradient(180deg, #121615 0%, var(--bg) 100%);
+}
+
+:root[data-theme="lichess"] body {
+  background:
+    linear-gradient(135deg, rgba(201, 168, 106, 0.1), transparent 32%),
+    linear-gradient(180deg, #181818 0%, var(--bg) 100%);
+}
+
+.tb-name,
+.panel-title,
+.page-title,
+.card-title,
+.section-label,
+.sidebar-title,
+#run-btn,
+#connect-btn,
+#run-stats-btn,
+.overlay-title,
+.loading-text {
+  font-family: "Fraunces", "Cinzel", Georgia, serif !important;
+  font-weight: 650;
+}
+
+.tb-name {
+  letter-spacing: 0.13em !important;
+}
+
+.nav-tab,
+.btn,
+.conn-input,
+.filter-input,
+.filter-select,
+.tool-select,
+.move-san,
+.move-pct,
+.pref-name,
+.choice-title {
+  font-family: "IBM Plex Mono", "JetBrains Mono", monospace !important;
+}
+
+#titlebar {
+  background: color-mix(in srgb, var(--bg2) 88%, black);
+  border-bottom-color: color-mix(in srgb, var(--border) 82%, var(--gold));
+}
+
+.panel,
+.chart-card {
+  background: color-mix(in srgb, var(--bg2) 94%, black);
+  border-color: var(--border);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.22);
+}
+
+.panel-head,
+.card-header,
+.sidebar-header {
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--gold-bg) 70%, transparent), transparent 58%),
+    var(--bg3);
+}
+
+.nav-tab.active {
+  box-shadow: inset 0 -1px 0 var(--gold);
+}
+
+.tb-conn,
+.meta-pill,
+.card-badge,
+.result-badge,
+.term-badge,
+.piece-badge,
+.sq-badge,
+.tc-pill {
+  border-radius: 7px !important;
+}
+
+.move-row,
+.lb-row,
+.pref-row,
+.choice {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg4) 28%, transparent), transparent),
+    var(--bg3) !important;
+}
+
+.move-row:hover,
+.lb-row:hover,
+.choice:hover {
+  border-color: color-mix(in srgb, var(--gold) 55%, var(--border2)) !important;
+}
+
+.bar,
+.lb-bar {
+  background: linear-gradient(90deg, var(--gold-dim), var(--gold2)) !important;
+}
+
+.btn.primary,
+#run-btn,
+#run-stats-btn,
+#connect-btn {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--gold-dim) 65%, var(--bg3)),
+    color-mix(in srgb, var(--gold) 28%, var(--bg4))
+  ) !important;
+  border-color: color-mix(in srgb, var(--gold) 70%, var(--border2)) !important;
+  color: var(--gold2) !important;
+}
+
+.btn.primary:hover,
+#run-btn:hover:not(:disabled),
+#run-stats-btn:hover,
+#connect-btn:hover {
+  box-shadow: 0 0 18px color-mix(in srgb, var(--gold) 22%, transparent) !important;
+}
+
+:root.pref-no-motion *,
+:root.pref-no-motion *::before,
+:root.pref-no-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  scroll-behavior: auto !important;
+  transition-duration: 0.001ms !important;
+}
+
+:root.pref-compact .nav-tab {
+  padding-left: 14px;
+  padding-right: 14px;
+}
+
+:root.pref-compact .panel-head,
+:root.pref-compact .card-header {
+  padding-top: 8px;
+  padding-bottom: 8px;
+}
+
+:root.pref-compact .btn,
+:root.pref-compact .filter-select,
+:root.pref-compact .filter-input,
+:root.pref-compact .conn-input,
+:root.pref-compact .tool-select {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
