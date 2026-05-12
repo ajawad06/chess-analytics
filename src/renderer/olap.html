@@ -925,12 +925,12 @@
         },
         checkmates: {
           label: "Checkmate Games",
-          expr: "COUNT(DISTINCT g.id) FILTER (WHERE cm.id IS NOT NULL)::float",
+          expr: "COUNT(DISTINCT g.id) FILTER (WHERE cm.game_id IS NOT NULL)::float",
           aggregate: "sum",
         },
         captures: {
           label: "Checkmate Captures",
-          expr: "COUNT(cm.id) FILTER (WHERE cm.is_capture = TRUE)::float",
+          expr: "COUNT(cm.game_id) FILTER (WHERE cm.is_capture = TRUE)::float",
           aggregate: "sum",
         },
         avgElo: {
@@ -1057,7 +1057,7 @@
         if (minMoves !== "") clauses.push(`${moveExpr} >= ${addParam(params, Number(minMoves))}`);
         if (maxMoves !== "") clauses.push(`${moveExpr} <= ${addParam(params, Number(maxMoves))}`);
 
-        if (el("f-checkmates").checked) clauses.push("cm.id IS NOT NULL");
+        if (el("f-checkmates").checked) clauses.push("cm.game_id IS NOT NULL");
 
         return clauses.join("\n    AND ");
       }
