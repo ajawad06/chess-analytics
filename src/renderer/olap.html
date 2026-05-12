@@ -62,9 +62,10 @@
         height: 44px;
         background: var(--bg2);
         border-bottom: 1px solid var(--border);
-        padding-left: 20px;
+        padding: 0 0 0 20px;
         -webkit-app-region: drag;
         flex-shrink: 0;
+        gap: 0;
       }
 
       .tb-logo {
@@ -75,10 +76,10 @@
       }
 
       .tb-icon {
+        font-size: 19px;
         width: 20px;
         text-align: center;
         color: var(--teal);
-        font-size: 18px;
         filter: drop-shadow(0 0 6px rgba(58, 204, 192, 0.35));
       }
 
@@ -109,6 +110,7 @@
         display: flex;
         align-items: stretch;
         height: 44px;
+        gap: 0;
         -webkit-app-region: no-drag;
       }
 
@@ -125,12 +127,14 @@
         background: none;
         cursor: pointer;
         border-bottom: 2px solid transparent;
+        transition: color 0.15s, background 0.15s, border-color 0.15s;
         text-transform: uppercase;
+        -webkit-app-region: no-drag;
       }
 
       .nav-tab:hover {
         color: var(--text2);
-        background: rgba(255, 255, 255, 0.03);
+        background: rgba(255, 255, 255, 0.02);
       }
 
       .nav-tab.active {
@@ -142,7 +146,7 @@
       .tb-status {
         display: flex;
         align-items: center;
-        gap: 12px;
+        gap: 16px;
         flex: 1;
         padding-left: 16px;
         -webkit-app-region: drag;
@@ -160,6 +164,7 @@
         font-family: "JetBrains Mono", monospace;
         font-size: 10px;
         -webkit-app-region: no-drag;
+        transition: border-color 0.2s, color 0.2s;
       }
 
       .tb-conn.connected {
@@ -172,6 +177,8 @@
         height: 5px;
         border-radius: 50%;
         background: var(--text3);
+        flex-shrink: 0;
+        transition: background 0.3s;
       }
 
       .tb-dot.connected {
@@ -642,7 +649,7 @@
   <body>
     <div id="titlebar">
       <div class="tb-logo">
-        <span class="tb-icon">OL</span>
+        <span class="tb-icon">◧</span>
         <div class="tb-brand">
           <div class="tb-name">Chess Analytics</div>
           <div class="tb-sub">OLAP Cube</div>
@@ -650,11 +657,11 @@
       </div>
 
       <div class="tb-nav">
-        <button class="nav-tab" onclick="window.api?.goExplorer()">Query</button>
-        <button class="nav-tab" onclick="window.api?.goAnalytics()">Statistics</button>
-        <button class="nav-tab" onclick="window.api?.goOpening()">Explorer</button>
+        <button class="nav-tab" onclick="window.api?.goExplorer()">⚔ Query</button>
+        <button class="nav-tab" onclick="window.api?.goAnalytics()">↗ Statistics</button>
+        <button class="nav-tab" onclick="window.api?.goOpening()">♞ Explorer</button>
         <button class="nav-tab active">OLAP</button>
-        <button class="nav-tab" onclick="window.api?.goSettings()">Settings</button>
+        <button class="nav-tab" onclick="window.api?.goSettings()">⚙ Settings</button>
       </div>
 
       <div class="tb-status">
